@@ -12,7 +12,7 @@ Images from ChatGPT and other image generators rarely come out consistent:
 
 Sprite Tidy fixes these inside the Unity Editor. Your original file is never changed.
 
-> **Status:** v0.2.0. Images that Sprite Tidy handles badly are very welcome in the issues.
+> **Status:** v0.3.0. Images that Sprite Tidy handles badly are very welcome in the issues.
 
 ## Usage
 
@@ -71,7 +71,7 @@ Or add it to `Packages/manifest.json`:
 "com.ismailhakkikara.spritetidy": "https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy"
 ```
 
-To use a fixed release, add its tag to the end of the URL, for example `#v0.2.0`.
+To use a fixed release, add its tag to the end of the URL, for example `#v0.3.0`.
 
 ### From code
 

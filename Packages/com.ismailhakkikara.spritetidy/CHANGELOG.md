@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-28
+
 ### Changed
 
 - New name: the package is now `com.ismailhakkikara.spritetidy`, at https://github.com/ismailhakkikara/sprite-tidy,
@@ -54,7 +56,8 @@ First release.
   which keeps the smooth shading of generated art; saving again keeps the sprite IDs.
 - `SpriteFixer` and `SpriteTidySaver` for doing the same from code.
 
-[Unreleased]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ismailhakkikara/sprite-tidy/releases/tag/v0.1.0

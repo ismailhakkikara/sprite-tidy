@@ -1,6 +1,6 @@
 {
   "name": "com.ismailhakkikara.spritetidy",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "displayName": "Sprite Tidy",
   "description": "Editor tool that cleans up AI-generated sprites (ChatGPT and others): removes plain and fake-checkerboard backgrounds, fixes not-quite-opaque alpha, puts every object on a sprite of the same size, and keeps sprite sheet frames from moving.",
   "unity": "2022.3",
