@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-28
+
 ### Added
 
 - Overwrite: replaces the image itself with the result, so scenes, prefabs and animations that already use it keep
@@ -45,6 +47,7 @@ First release.
   which keeps the smooth shading of generated art; saving again keeps the sprite IDs.
 - `SpriteFixer` and `SpriteTidySaver` for doing the same from code.
 
-[Unreleased]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/melloBlack/sprite-tidy/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/melloBlack/sprite-tidy/releases/tag/v0.1.0
