@@ -45,6 +45,7 @@ namespace MelloBlack.SpriteTidy.Tests
             var importer = (TextureImporter)AssetImporter.GetAtPath(paths[0]);
             Assert.AreEqual(TextureImporterType.Sprite, importer.textureType);
             Assert.AreEqual(SpriteImportMode.Multiple, importer.spriteImportMode);
+            Assert.AreEqual(TextureImporterCompression.CompressedHQ, importer.textureCompression, "Normal Quality compression is too lossy");
 
             var sprites = SpritesAt(paths[0]);
             CollectionAssert.AreEqual(new[] { "frames_fixed_01", "frames_fixed_02" }, sprites.Select(s => s.name).ToArray());

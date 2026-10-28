@@ -49,6 +49,11 @@ namespace MelloBlack.SpriteTidy
             importer.mipmapEnabled = false;
             importer.maxTextureSize = TextureSizeFor(output.Image);
 
+            // Unity's default compression (Normal Quality) loses a lot on generated art: on a 512 × 512 sprite some
+            // pixels were off by up to 149. High Quality (BC7 on desktop, ASTC 4×4 on mobile) stays close to the PNG,
+            // and on desktop it uses the same memory.
+            importer.textureCompression = TextureImporterCompression.CompressedHQ;
+
             if (output.Sprites.Count == 1)
             {
                 importer.spriteImportMode = SpriteImportMode.Single;
