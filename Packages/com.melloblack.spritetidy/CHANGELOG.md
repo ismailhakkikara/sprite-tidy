@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Overwrite: replaces the image itself with the result, so scenes, prefabs and animations that already use it keep
+  working. The old Fix button is now Save as New.
+- Several images at once: select them in the Project window and choose Fix with Sprite Tidy, or drag them into the
+  window. Click an image to see its result; all of them are saved with the same settings.
+
+### Changed
+
+- Sprites cut some other way before, in the Sprite Editor for example, keep their names and IDs when the image is
+  fixed again.
+
 ## [0.1.1] - 2026-10-28
 
 ### Added

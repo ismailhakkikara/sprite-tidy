@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "MelloBlack.SpriteTidy.Core",
-        "MelloBlack.SpriteTidy.Editor"
+        "MelloBlack.SpriteTidy.Editor",
+        "Unity.2D.Sprite.Editor"
     ],
     "includePlatforms": [
         "Editor"

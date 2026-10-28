@@ -16,11 +16,12 @@ Sprite Tidy fixes these inside the Unity Editor. Your original file is never cha
 
 ## Usage
 
-Open **Window → Sprite Tidy**, or right-click an image in the Project window and choose **Fix with Sprite Tidy**.
+Open **Window → Sprite Tidy**, or select one or more images in the Project window, right-click and choose
+**Fix with Sprite Tidy**.
 
 | Setting | What it does |
 |---|---|
-| **Image** | The picture to fix. |
+| **Images** | The pictures to fix. Drag them into the window, or press **+** to pick one. Click a picture to see its result. All of them are fixed with the same settings. |
 | **Mode** | **Single**: the picture shows one object. **Multiple**: it shows several, like a sprite sheet. |
 | **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source. Made for animations: the frames are lined up, so they don't move from one frame to the next. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
 | **Line up** | Only for Sheet: which part of every frame stays in the same place. **Bottom**: the base, for things that stand on the ground. **Center**: the middle, for things that spin or grow from their middle. **Top**: the top, when effects appear below the object. |
@@ -28,11 +29,18 @@ Open **Window → Sprite Tidy**, or right-click an image in the Project window a
 | **Margin** | Empty pixels between the object and the edges of its sprite. 8 by default. In a Sheet this also keeps neighboring sprites from bleeding into each other. |
 | **Pivot** | Where the object sits inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base. In a Sheet, the whole animation is placed this way. |
 
-The result is shown to the right of the settings, or below the **Fix** button when the window is tall and narrow,
-with the pivot of each sprite marked in red. Press **Fix** to save.
-The result is saved next to the original, with `_fixed` added to the name (`chest_fixed.png`, or `chest_fixed_01.png`,
-`chest_fixed_02.png`, … for Separate) and imported as sprites. Fixing again overwrites the same files and keeps the
-sprite IDs, so animations and prefabs that use them keep working.
+The result is shown to the right of the settings, or below the buttons when the window is tall and narrow,
+with the pivot of each sprite marked in red. Then save it with one of the two buttons:
+
+- **Save as New** saves the result next to the image, with `_fixed` added to the name (`chest_fixed.png`, or
+  `chest_fixed_01.png`, `chest_fixed_02.png`, … for Separate). The image itself doesn't change. Saving again
+  overwrites the same files.
+- **Overwrite** replaces the image itself with the result. Use it for an image that is already used in scenes, prefabs
+  or animations: they keep working. The original can't be brought back, unless you use version control. It works with
+  PNG images, and not with Separate, which makes several files from one image.
+
+Either way the result is imported as sprites, and sprites that were there before keep their IDs, so whatever uses
+them keeps working. (If the Mode changes from Single to Multiple or back, the old sprites are replaced by new ones.)
 
 ## What happens to the image
 

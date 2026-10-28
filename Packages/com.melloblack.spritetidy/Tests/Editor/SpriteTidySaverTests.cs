@@ -2,6 +2,7 @@ using System.Linq;
 using MelloBlack.SpriteTidy.Core;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.U2D.Sprites;
 using UnityEngine;
 using static MelloBlack.SpriteTidy.Tests.TestImages;
 
@@ -80,6 +81,74 @@ namespace MelloBlack.SpriteTidy.Tests
             AssetDatabase.TryGetGUIDAndLocalFileIdentifier(SpritesAt(path)[0], out _, out long after);
 
             Assert.AreEqual(before, after, "animations that use the sprite keep working");
+        }
+
+        [Test]
+        public void OnlyPngFilesCanBeOverwritten()
+        {
+            Assert.IsTrue(SpriteTidySaver.CanOverwrite("Assets/art/chest.png"));
+            Assert.IsTrue(SpriteTidySaver.CanOverwrite("Assets/art/chest.PNG"));
+            Assert.IsFalse(SpriteTidySaver.CanOverwrite("Assets/art/chest.jpg"), "a JPG can't keep the transparency");
+        }
+
+        [Test]
+        public void OverwritingKeepsTheImageAndItsSprite()
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(Source);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.SaveAndReimport();
+            string guid = AssetDatabase.AssetPathToGUID(Source);
+            long before = IdOf(SpritesAt(Source).Single());
+
+            var settings = new FixSettings { Size = 128, Margin = 2, Pivot = Pivot.Bottom };
+            SpriteTidySaver.Overwrite(Source, SpriteFixer.Fix(SpriteTidyIO.Load(Source), settings)[0]);
+
+            Assert.AreEqual(guid, AssetDatabase.AssetPathToGUID(Source));
+            var sprite = SpritesAt(Source).Single();
+            Assert.AreEqual(before, IdOf(sprite), "scenes and prefabs that use the sprite keep working");
+            Assert.AreEqual(128, sprite.texture.width);
+            Assert.AreEqual(new Vector2(64, 2), sprite.pivot);
+        }
+
+        [Test]
+        public void OverwritingKeepsTheSpritesCutInTheSpriteEditor()
+        {
+            CutLikeTheSpriteEditor(Source, "frames_0", "frames_1");
+            var before = SpritesAt(Source).Select(IdOf).ToArray();
+
+            var settings = new FixSettings { Mode = ImageMode.Multiple, Output = OutputType.Sheet, Size = 128, Margin = 2 };
+            SpriteTidySaver.Overwrite(Source, SpriteFixer.Fix(SpriteTidyIO.Load(Source), settings)[0]);
+
+            var sprites = SpritesAt(Source);
+            CollectionAssert.AreEqual(new[] { "frames_0", "frames_1" }, sprites.Select(s => s.name).ToArray());
+            CollectionAssert.AreEqual(before, sprites.Select(IdOf).ToArray(), "animations that use the sprites keep working");
+            Assert.AreEqual(new Rect(128, 0, 128, 128), sprites[1].rect);
+        }
+
+        static long IdOf(Sprite sprite)
+        {
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite, out _, out long id);
+            return id;
+        }
+
+        /// <summary>Cuts the image into sprites the way the Sprite Editor does, with its names.</summary>
+        static void CutLikeTheSpriteEditor(string path, params string[] names)
+        {
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.SaveAndReimport();
+
+            var factory = new SpriteDataProviderFactories();
+            factory.Init();
+            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
+            provider.InitSpriteEditorDataProvider();
+            var rects = names.Select((name, i) => new SpriteRect { name = name, rect = new Rect(i * 100, 0, 100, 100), spriteID = GUID.Generate() }).ToArray();
+            provider.SetSpriteRects(rects);
+            provider.GetDataProvider<ISpriteNameFileIdDataProvider>()?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
+            provider.Apply();
+            importer.SaveAndReimport();
         }
     }
 }

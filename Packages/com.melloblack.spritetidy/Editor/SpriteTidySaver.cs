@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace MelloBlack.SpriteTidy
 {
-    /// <summary>Saves fixed images next to the source image and imports them as sprites.</summary>
+    /// <summary>Saves fixed images next to the source image, or over it, and imports them as sprites.</summary>
     public static class SpriteTidySaver
     {
         public const string Suffix = "_fixed";
@@ -39,6 +39,24 @@ namespace MelloBlack.SpriteTidy
             }
 
             return paths;
+        }
+
+        /// <summary>Whether <see cref="Overwrite"/> can replace this file. Only PNG files can keep the transparency.</summary>
+        public static bool CanOverwrite(string sourcePath) =>
+            string.Equals(Path.GetExtension(sourcePath), ".png", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Replaces the source image with the fixed one and imports it as sprites. The asset keeps its GUID and its
+        /// sprites keep their IDs, so scenes, prefabs and animations that use them keep working.
+        /// </summary>
+        public static void Overwrite(string sourcePath, OutputImage image)
+        {
+            if (!CanOverwrite(sourcePath))
+                throw new ArgumentException($"Only PNG files can be overwritten, not '{sourcePath}'.", nameof(sourcePath));
+
+            SpriteTidyIO.SavePng(image.Image, sourcePath);
+            AssetDatabase.ImportAsset(sourcePath, ImportAssetOptions.ForceUpdate);
+            SetUpSprites(sourcePath, image);
         }
 
         static void SetUpSprites(string path, OutputImage output)
@@ -72,8 +90,9 @@ namespace MelloBlack.SpriteTidy
         }
 
         /// <summary>
-        /// Cuts the texture into sprites. A sprite that existed before with the same name keeps its ID,
-        /// so animations and prefabs that use it still work after saving again.
+        /// Cuts the texture into sprites. The sprites that were there before keep their names and IDs, so animations
+        /// and prefabs that use them still work after saving again or overwriting: a sprite with the same name keeps
+        /// its ID, and sprites cut some other way (in the Sprite Editor, say) are kept in order.
         /// </summary>
         static void SetSpriteRects(TextureImporter importer, string baseName, IReadOnlyList<SpriteArea> sprites)
         {
@@ -82,21 +101,22 @@ namespace MelloBlack.SpriteTidy
             var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
             provider.InitSpriteEditorDataProvider();
 
-            var oldIds = new Dictionary<string, GUID>();
-            foreach (var old in provider.GetSpriteRects()) oldIds[old.name] = old.spriteID;
+            var ourNames = Enumerable.Range(1, sprites.Count).Select(i => $"{baseName}_{i:00}").ToList();
+            var old = provider.GetSpriteRects();
+            var others = new Queue<SpriteRect>(old.Where(o => !ourNames.Contains(o.name)));
 
             var rects = new SpriteRect[sprites.Count];
             for (int i = 0; i < sprites.Count; i++)
             {
                 var sprite = sprites[i];
-                string name = $"{baseName}_{i + 1:00}";
+                var before = old.FirstOrDefault(o => o.name == ourNames[i]) ?? (others.Count > 0 ? others.Dequeue() : null);
                 rects[i] = new SpriteRect
                 {
-                    name = name,
+                    name = before?.name ?? ourNames[i],
                     rect = new Rect(sprite.Rect.X, sprite.Rect.Y, sprite.Rect.Width, sprite.Rect.Height),
                     alignment = SpriteAlignment.Custom,
                     pivot = new Vector2(sprite.PivotX, sprite.PivotY),
-                    spriteID = oldIds.TryGetValue(name, out var id) ? id : GUID.Generate(),
+                    spriteID = before?.spriteID ?? GUID.Generate(),
                 };
             }
 
