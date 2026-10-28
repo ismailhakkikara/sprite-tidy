@@ -101,27 +101,6 @@ namespace MelloBlack.SpriteTidy.Tests
         }
 
         [Test]
-        public void AtlasPacksSpritesWithoutOverlap()
-        {
-            var image = Transparent(400, 200);
-            int[] sizes = { 60, 20, 45, 30, 50 };
-            for (int i = 0; i < sizes.Length; i++) FillRect(image, 10 + i * 78, 70, sizes[i], sizes[i], Red);
-
-            var result = Fix(image, ImageMode.Multiple, OutputType.Atlas);
-
-            Assert.AreEqual(1, result.Count);
-            var atlas = result[0].Image;
-            var rects = result[0].Sprites.Select(s => s.Rect).ToList();
-            Assert.AreEqual(sizes.Length, rects.Count);
-            for (int a = 0; a < rects.Count; a++)
-            {
-                Assert.IsTrue(rects[a].X >= 0 && rects[a].Y >= 0 && rects[a].XMax <= atlas.Width && rects[a].YMax <= atlas.Height);
-                Assert.IsFalse(atlas.Crop(rects[a]).FindBounds().IsEmpty, "each sprite holds its object");
-                for (int b = a + 1; b < rects.Count; b++) Assert.AreEqual(0, rects[a].IntersectionArea(rects[b]));
-            }
-        }
-
-        [Test]
         public void CleansUpACheckerboardSheet()
         {
             var image = Checkerboard(256, 128, 8, White, LightGray);

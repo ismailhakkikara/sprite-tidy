@@ -17,11 +17,8 @@ namespace MelloBlack.SpriteTidy.Core
         /// <summary>One texture with the objects in a grid of equal cells, in the same rows as the source. Good for animations.</summary>
         Sheet,
 
-        /// <summary>One file for each object.</summary>
+        /// <summary>One file for each object. To pack them for performance, add them to a Unity Sprite Atlas.</summary>
         Separate,
-
-        /// <summary>One texture with the objects packed tightly.</summary>
-        Atlas,
     }
 
     /// <summary>The point each object is pinned to inside its sprite. The sprite pivot is set to the same point.</summary>
@@ -121,10 +118,8 @@ namespace MelloBlack.SpriteTidy.Core
             if (settings.Mode == ImageMode.Single) parts = new List<ImagePart> { Combine(parts) };
 
             var layout = new SpriteLayout(parts, settings.Size, settings.Pivot);
-            if (settings.Mode == ImageMode.Single || settings.Output == OutputType.Separate)
-                return Enumerable.Range(0, parts.Count).Select(layout.Cell).ToList();
-            if (settings.Output == OutputType.Sheet) return new[] { layout.Sheet() };
-            return new[] { layout.Atlas() };
+            if (settings.Mode == ImageMode.Multiple && settings.Output == OutputType.Sheet) return new[] { layout.Sheet() };
+            return Enumerable.Range(0, parts.Count).Select(layout.Cell).ToList();
         }
 
         /// <summary>Puts all objects back into one, for an image that shows a single object.</summary>

@@ -47,7 +47,12 @@ namespace MelloBlack.SpriteTidy
             Refresh();
         }
 
-        void OnEnable() => Refresh();
+        void OnEnable()
+        {
+            // A window saved by an older version may still have the removed Atlas output selected.
+            if (!Enum.IsDefined(typeof(OutputType), settings.Output)) settings.Output = OutputType.Sheet;
+            Refresh();
+        }
 
         void OnDisable()
         {
@@ -85,8 +90,8 @@ namespace MelloBlack.SpriteTidy
             {
                 settings.Output = (OutputType)Choice("Output",
                     "Sheet: one texture, objects in a grid of equal cells. Good for animations.\n" +
-                    "Separate: one file for each object.\nAtlas: one texture, objects packed tightly.",
-                    (int)settings.Output, "Sheet", "Separate", "Atlas");
+                    "Separate: one file for each object. To pack them for performance, add them to a Unity Sprite Atlas.",
+                    (int)settings.Output, "Sheet", "Separate");
             }
 
             settings.Size = Mathf.Clamp(EditorGUILayout.DelayedIntField(
@@ -278,10 +283,8 @@ namespace MelloBlack.SpriteTidy
                 saves = $"Saves {files[0]}: one sprite of {size} × {size}.";
             else if (settings.Output == OutputType.Separate)
                 saves = $"Saves {files.Count} files of {size} × {size}: {files[0]} to {files[files.Count - 1]}.";
-            else if (settings.Output == OutputType.Sheet)
-                saves = $"Saves {files[0]}: {count} sprites of {size} × {size} in a {result[0].Image.Width / size} × {result[0].Image.Height / size} grid.";
             else
-                saves = $"Saves {files[0]}: {count} sprites packed into {result[0].Image.Width} × {result[0].Image.Height}.";
+                saves = $"Saves {files[0]}: {count} sprites of {size} × {size} in a {result[0].Image.Width / size} × {result[0].Image.Height / size} grid.";
             return found + "\n" + saves;
         }
 

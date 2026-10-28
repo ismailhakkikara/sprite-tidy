@@ -22,7 +22,7 @@ Open **Window → Sprite Tidy**, or right-click an image in the Project window a
 |---|---|
 | **Image** | The picture to fix. |
 | **Mode** | **Single**: the picture shows one object. **Multiple**: it shows several, like a sprite sheet. |
-| **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source; good for animations. **Separate**: one file for each object. **Atlas**: one texture with the objects packed tightly. |
+| **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source; good for animations. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
 | **Size** | Width and height of each sprite, in pixels. 512 by default. |
 | **Pivot** | Where each object is pinned inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base: good for animations. |
 

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Sprite Tidy window with four settings: Mode (Single or Multiple), Output (Sheet, Separate or Atlas), Size and Pivot,
+- Sprite Tidy window with four settings: Mode (Single or Multiple), Output (Sheet or Separate), Size and Pivot,
   and a preview of the original and the result.
 - Background removal for plain colors and fake checkerboards (also dark ones whose two colors are nearly the same),
   with removal of holes and un-blending of soft edges.

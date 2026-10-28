@@ -14,9 +14,6 @@ namespace MelloBlack.SpriteTidy.Core
         // Free space inside each cell edge is the cell size divided by this (at least 2 pixels).
         const int MarginDivisor = 64;
 
-        // Space between sprites in an atlas, in pixels.
-        const int AtlasGap = 2;
-
         // The base of an object is this share of its height (or width) at the pivot side.
         const double BaseShare = 0.1;
 
@@ -84,41 +81,6 @@ namespace MelloBlack.SpriteTidy.Core
             }
 
             return new OutputImage(sheet, sprites);
-        }
-
-        /// <summary>All objects packed tightly: tallest first, in shelves from the bottom up.</summary>
-        public OutputImage Atlas()
-        {
-            long area = scaled.Sum(s => (long)(s.Width + AtlasGap) * (s.Height + AtlasGap));
-            int width = Math.Max(scaled.Max(s => s.Width) + 2 * AtlasGap, (int)Math.Ceiling(Math.Sqrt(area)));
-
-            var places = new PixelRect[scaled.Count];
-            int x = AtlasGap, y = AtlasGap, shelfHeight = 0;
-            foreach (int i in Enumerable.Range(0, scaled.Count).OrderByDescending(i => scaled[i].Height))
-            {
-                var image = scaled[i];
-                if (x + image.Width + AtlasGap > width)
-                {
-                    x = AtlasGap;
-                    y += shelfHeight + AtlasGap;
-                    shelfHeight = 0;
-                }
-
-                places[i] = new PixelRect(x, y, image.Width, image.Height);
-                x += image.Width + AtlasGap;
-                shelfHeight = Math.Max(shelfHeight, image.Height);
-            }
-
-            var atlas = new RgbaImage(width, y + shelfHeight + AtlasGap);
-            var sprites = new List<SpriteArea>();
-            for (int i = 0; i < scaled.Count; i++)
-            {
-                var place = places[i];
-                atlas.Blit(scaled[i], place.X, place.Y);
-                sprites.Add(new SpriteArea(place, (float)(pins[i].x / place.Width), (float)(pins[i].y / place.Height)));
-            }
-
-            return new OutputImage(atlas, sprites);
         }
 
         void Draw(RgbaImage target, int index, int cellX, int cellY)
