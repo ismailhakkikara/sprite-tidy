@@ -1,5 +1,7 @@
 # Sprite Tidy
 
+[![openupm](https://img.shields.io/npm/v/com.ismailhakkikara.spritetidy?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.ismailhakkikara.spritetidy/)
+
 A Unity editor tool that cleans up AI-generated sprites so they are ready to use.
 
 Images from ChatGPT and other image generators rarely come out consistent:
@@ -10,7 +12,7 @@ Images from ChatGPT and other image generators rarely come out consistent:
 - "transparent" images are not quite opaque either: most of their solid pixels have alpha 250–253, so sprites are a little see-through
 - in sprite sheets, frames move around and change size from one frame to the next
 
-Sprite Tidy fixes these inside the Unity Editor. Your original file is never changed.
+Sprite Tidy fixes these inside the Unity Editor. Your original file is only changed if you choose to overwrite it.
 
 > **Status:** v0.3.0. Images that Sprite Tidy handles badly are very welcome in the issues.
 
@@ -59,19 +61,28 @@ them keeps working. (If the Mode changes from Single to Multiple or back, the ol
 
 Requires Unity 2022.3 or newer.
 
+### From OpenUPM
+
+Installed this way, the Package Manager shows when there is a new version, and updates it with one click.
+
+1. Open **Edit → Project Settings → Package Manager** and add a scoped registry:
+   - **Name:** `OpenUPM`
+   - **URL:** `https://package.openupm.com`
+   - **Scope(s):** `com.ismailhakkikara`
+2. In the Package Manager, open **My Registries**, select **Sprite Tidy** and press **Install**.
+
+Or, with the [OpenUPM CLI](https://openupm.com/docs/getting-started-cli.html): `openupm add com.ismailhakkikara.spritetidy`
+
+### From the git URL
+
 In the Package Manager, choose **+ → Add package from git URL…** and enter:
 
 ```
-https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy
+https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy#v0.3.0
 ```
 
-Or add it to `Packages/manifest.json`:
-
-```json
-"com.ismailhakkikara.spritetidy": "https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy"
-```
-
-To use a fixed release, add its tag to the end of the URL, for example `#v0.3.0`.
+The tag at the end (`#v0.3.0`) is the version. The Package Manager can't see new versions of a git package, so to
+update, change the tag in `Packages/manifest.json` to the [latest release](https://github.com/ismailhakkikara/sprite-tidy/releases).
 
 ### From code
 
