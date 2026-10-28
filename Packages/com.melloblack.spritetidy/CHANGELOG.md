@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Sprite Tidy window with Mode (Single or Multiple), Output (Sheet or Separate), Line up (Bottom, Center or Top,
-  for sheets), Size and Pivot, and a preview of the original and the result that sits side by side or one above
-  the other, whichever shows them bigger.
+  for sheets), Size and Pivot, and a preview of the result to the right of the settings or below them, whichever
+  shows it bigger.
 - Background removal for plain colors and fake checkerboards (also dark ones whose two colors are nearly the same),
   with removal of holes and un-blending of soft edges.
 - Alpha cleanup: nearly opaque pixels become fully opaque and faint haze is removed.

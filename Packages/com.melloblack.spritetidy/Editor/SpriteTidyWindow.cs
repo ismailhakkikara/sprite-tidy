@@ -12,6 +12,7 @@ namespace MelloBlack.SpriteTidy
     public sealed class SpriteTidyWindow : EditorWindow
     {
         const float PanelWidth = 300f;
+        const float Gap = 8f;
         static readonly Color PivotColor = new Color(1f, 0.25f, 0.25f);
         static readonly Color CellColor = new Color(1f, 1f, 1f, 0.35f);
 
@@ -25,12 +26,18 @@ namespace MelloBlack.SpriteTidy
         string message;
         Texture2D checker;
 
+        // The result is shown to the right of the settings, or below them when that shows it bigger.
+        bool resultBelow;
+
+        // Height of the settings, measured on the last repaint.
+        float settingsHeight = 260f;
+
         [MenuItem("Window/Sprite Tidy")]
         public static SpriteTidyWindow Open()
         {
             var window = GetWindow<SpriteTidyWindow>();
             window.titleContent = new GUIContent("Sprite Tidy");
-            window.minSize = new Vector2(640, 420);
+            window.minSize = new Vector2(320, 360);
             return window;
         }
 
@@ -62,20 +69,47 @@ namespace MelloBlack.SpriteTidy
 
         void OnGUI()
         {
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                using (new EditorGUILayout.VerticalScope(GUILayout.Width(PanelWidth)))
-                {
-                    EditorGUILayout.Space();
-                    DrawSettings();
-                }
+            // Decide once per frame, in the Layout event, so all events of the frame use the same layout.
+            if (Event.current.type == EventType.Layout) resultBelow = ResultFitsBetterBelow();
 
-                DrawPreview();
+            if (resultBelow)
+            {
+                using (new EditorGUILayout.VerticalScope())
+                {
+                    DrawSettings();
+                    DrawResult();
+                }
             }
+            else
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    using (new EditorGUILayout.VerticalScope(GUILayout.Width(PanelWidth))) DrawSettings();
+                    DrawResult();
+                }
+            }
+        }
+
+        /// <summary>Whether the result shows bigger below the settings than to their right.</summary>
+        bool ResultFitsBetterBelow()
+        {
+            var texture = previews.Count == 1 ? previews[0] : null;
+            float aspect = texture != null ? (float)texture.width / texture.height : 1f;
+            float right = ShownHeight(aspect, position.width - PanelWidth - Gap, position.height - Gap);
+            float below = ShownHeight(aspect, position.width - Gap, position.height - settingsHeight - Gap);
+            return below > right;
+        }
+
+        /// <summary>How tall an image of this aspect is shown in a space of this size, under its label.</summary>
+        static float ShownHeight(float aspect, float width, float height)
+        {
+            height -= 18f;
+            return width <= 0 || height <= 0 ? 0 : Mathf.Min(width / aspect, height);
         }
 
         void DrawSettings()
         {
+            EditorGUILayout.Space();
             EditorGUI.BeginChangeCheck();
             var picked = (Texture2D)EditorGUILayout.ObjectField(
                 new GUIContent("Image", "The picture to fix. Drag it here from the Project window."), image, typeof(Texture2D), false);
@@ -116,6 +150,8 @@ namespace MelloBlack.SpriteTidy
             {
                 if (GUILayout.Button("Fix", GUILayout.Height(32))) Save();
             }
+
+            if (Event.current.type == EventType.Repaint) settingsHeight = GUILayoutUtility.GetLastRect().yMax;
         }
 
         static int Choice(string label, string tooltip, int selected, params string[] options)
@@ -159,51 +195,18 @@ namespace MelloBlack.SpriteTidy
             return current;
         }
 
-        void DrawPreview()
+        void DrawResult()
         {
-            using (new EditorGUILayout.VerticalScope())
+            var area = GUILayoutUtility.GetRect(0, 0, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+            if (image == null)
             {
-                if (image == null)
-                {
-                    GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField("Put an image in the Image field to start.", EditorStyles.centeredGreyMiniLabel);
-                    GUILayout.FlexibleSpace();
-                    return;
-                }
-
-                // Side by side or one above the other, whichever shows the images bigger.
-                const float gap = 8f;
-                var area = GUILayoutUtility.GetRect(0, 0, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
-                var resultTexture = previews.Count == 1 ? previews[0] : null;
-                float sideBySideScale = ShownScale(resultTexture, (area.width - gap) / 2f, area.height);
-                float stackedScale = ShownScale(resultTexture, area.width, (area.height - gap) / 2f);
-
-                Rect first, second;
-                if (sideBySideScale >= stackedScale)
-                {
-                    float half = (area.width - gap) / 2f;
-                    first = new Rect(area.x, area.y, half, area.height);
-                    second = new Rect(area.x + half + gap, area.y, half, area.height);
-                }
-                else
-                {
-                    float half = (area.height - gap) / 2f;
-                    first = new Rect(area.x, area.y, area.width, half);
-                    second = new Rect(area.x, area.y + half + gap, area.width, half);
-                }
-
-                DrawImage(first, "Original", image, null);
-                if (previews.Count == 1) DrawImage(second, "Result", previews[0], result[0].Sprites);
-                else if (previews.Count > 1) DrawGrid(second);
+                GUI.Label(area, "Put an image in the Image field to start.", EditorStyles.centeredGreyMiniLabel);
+                return;
             }
-        }
 
-        /// <summary>How big the original and the result would be shown in two spaces of this size (the smaller of the two).</summary>
-        float ShownScale(Texture resultTexture, float width, float height)
-        {
-            height -= 18f; // the label above each image
-            float Fit(Texture texture) => texture == null ? float.MaxValue : Mathf.Min(width / texture.width, height / texture.height);
-            return Mathf.Min(Fit(image), Fit(resultTexture));
+            area = new Rect(area.x + Gap / 2f, area.y + Gap / 2f, area.width - Gap, area.height - Gap);
+            if (previews.Count == 1) DrawImage(area, "Result", previews[0], result[0].Sprites);
+            else if (previews.Count > 1) DrawGrid(area);
         }
 
         /// <summary>Several separate files: one small preview each.</summary>
