@@ -89,9 +89,19 @@ namespace MelloBlack.SpriteTidy
             if (settings.Mode == ImageMode.Multiple)
             {
                 settings.Output = (OutputType)Choice("Output",
-                    "Sheet: one texture, objects in a grid of equal cells. For animations: frames are lined up on their base, so they don't move.\n" +
+                    "Sheet: one texture, objects in a grid of equal cells. For animations: frames are lined up, so they don't move.\n" +
                     "Separate: one file for each object. To pack them for performance, add them to a Unity Sprite Atlas.",
                     (int)settings.Output, "Sheet", "Separate");
+
+                if (settings.Output == OutputType.Sheet)
+                {
+                    settings.LineUp = (LineUp)Choice("Line up",
+                        "Which part of every frame stays in the same place.\n" +
+                        "Bottom: the base, for things that stand on the ground.\n" +
+                        "Center: the middle, for things that spin or grow from their middle.\n" +
+                        "Top: the top, when effects appear below the object.",
+                        (int)settings.LineUp, "Bottom", "Center", "Top");
+                }
             }
 
             settings.Size = Mathf.Clamp(EditorGUILayout.DelayedIntField(
@@ -123,7 +133,8 @@ namespace MelloBlack.SpriteTidy
             {
                 EditorGUILayout.PrefixLabel(new GUIContent("Pivot",
                     "Where the object sits inside its sprite. The sprite pivot is set to the same point.\n" +
-                    "Bottom: objects stand on the bottom edge, centered on their base."));
+                    "Bottom: objects stand on the bottom edge, centered on their base.\n" +
+                    "In a Sheet, the whole animation is placed this way."));
 
                 using (new EditorGUILayout.VerticalScope(GUILayout.Width(84)))
                 {

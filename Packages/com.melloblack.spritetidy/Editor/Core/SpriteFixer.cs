@@ -16,7 +16,7 @@ namespace MelloBlack.SpriteTidy.Core
     {
         /// <summary>
         /// One texture with the objects in a grid of equal cells, in the same rows as the source. For animations: the
-        /// frames are lined up on their base, so they don't move, and the whole animation is placed at the pivot.
+        /// frames are lined up (see <see cref="LineUp"/>), so they don't move, and the whole animation is placed at the pivot.
         /// </summary>
         Sheet,
 
@@ -24,7 +24,20 @@ namespace MelloBlack.SpriteTidy.Core
         Separate,
     }
 
-    /// <summary>The point each object is pinned to inside its sprite. The sprite pivot is set to the same point.</summary>
+    /// <summary>Which part of every frame of a <see cref="OutputType.Sheet"/> is kept in the same place.</summary>
+    public enum LineUp
+    {
+        /// <summary>The base, for things that stand on the ground.</summary>
+        Bottom,
+
+        /// <summary>The middle, for things that spin or grow from their middle.</summary>
+        Center,
+
+        /// <summary>The top, when effects appear below the object.</summary>
+        Top,
+    }
+
+    /// <summary>Where the object sits inside its sprite. The sprite pivot is set to the same point.</summary>
     public enum Pivot
     {
         TopLeft,
@@ -48,6 +61,9 @@ namespace MelloBlack.SpriteTidy.Core
         public int Size = 512;
 
         public Pivot Pivot = Pivot.Center;
+
+        /// <summary>Only for <see cref="OutputType.Sheet"/>.</summary>
+        public LineUp LineUp = LineUp.Bottom;
     }
 
     /// <summary>The source image after background removal and alpha cleanup, and the objects found in it.</summary>
@@ -121,7 +137,7 @@ namespace MelloBlack.SpriteTidy.Core
             if (settings.Mode == ImageMode.Single) parts = new List<ImagePart> { Combine(parts) };
 
             bool sheet = settings.Mode == ImageMode.Multiple && settings.Output == OutputType.Sheet;
-            var layout = new SpriteLayout(parts, settings.Size, settings.Pivot, lineUpFrames: sheet);
+            var layout = new SpriteLayout(parts, settings.Size, settings.Pivot, sheet ? settings.LineUp : (LineUp?)null);
             if (sheet) return new[] { layout.Sheet() };
             return Enumerable.Range(0, parts.Count).Select(layout.Cell).ToList();
         }

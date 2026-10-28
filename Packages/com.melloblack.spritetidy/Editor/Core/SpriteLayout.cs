@@ -14,8 +14,10 @@ namespace MelloBlack.SpriteTidy.Core
         // Free space inside each cell edge is the cell size divided by this (at least 2 pixels).
         const int MarginDivisor = 64;
 
-        // The base of an object is this share of its height (or width) at the pivot side.
-        const double BaseShare = 0.1;
+        // The base of an object is this share of its height (or width) at the pivot side. For the frames of a sheet
+        // it is this share of the shortest frame, so the base is equally thick in every frame. It must be thick enough
+        // to reach past feet and corners to the body: a slanted chest's lowest rows show only one of its feet.
+        const double BaseShare = 0.15;
 
         // Pixels at least this opaque count when finding the base.
         const int SolidAlpha = 128;
@@ -37,11 +39,12 @@ namespace MelloBlack.SpriteTidy.Core
         readonly (double x, double y) cellPin;
         readonly (double x, double y) spritePivot;
 
-        /// <param name="lineUpFrames">
-        /// True for the frames of an animation: every frame is pinned at its base, and the whole animation is
-        /// placed in the cell as the pivot says. False to pin every object at the pivot on its own.
+        /// <param name="lineUp">
+        /// For the frames of an animation: the part of every frame that is kept in the same place. The frames are
+        /// lined up on it, and the whole animation is placed in the cell as the pivot says. Null to place every
+        /// object at the pivot on its own.
         /// </param>
-        public SpriteLayout(List<ImagePart> parts, int size, Pivot pivot, bool lineUpFrames)
+        public SpriteLayout(List<ImagePart> parts, int size, Pivot pivot, LineUp? lineUp)
         {
             this.parts = parts;
             this.size = size;
@@ -51,21 +54,23 @@ namespace MelloBlack.SpriteTidy.Core
 
             List<(double x, double y)> sourcePins;
             double scale;
-            if (lineUpFrames)
+            if (lineUp.HasValue)
             {
-                // Pin every frame at the middle of its bottom edge. Seen from that point, the frames together reach
-                // `left` to the left, `right` to the right and `height` up. Scale and place that block as a whole.
-                sourcePins = parts.Select(p => (BaseMiddle(p.Image, alongRows: true, atStart: true), 0.0)).ToList();
+                sourcePins = LineUpPoints(lineUp.Value);
+
+                // Seen from the line-up point, the frames together reach this far in each direction.
+                // Scale and place that block as a whole.
                 double left = sourcePins.Max(p => p.x);
                 double right = parts.Select((p, i) => p.Image.Width - sourcePins[i].x).Max();
-                double height = parts.Max(p => p.Image.Height);
+                double below = sourcePins.Max(p => p.y);
+                double above = parts.Select((p, i) => p.Image.Height - sourcePins[i].y).Max();
                 double room = size - 2 * margin;
-                scale = Math.Min(room / (left + right), room / height);
+                scale = Math.Min(room / (left + right), room / (below + above));
 
-                double blockWidth = (left + right) * scale, blockHeight = height * scale;
+                double blockWidth = (left + right) * scale, blockHeight = (below + above) * scale;
                 double blockX = column < 0 ? margin : column > 0 ? size - margin - blockWidth : (size - blockWidth) / 2;
                 double blockY = row < 0 ? margin : row > 0 ? size - margin - blockHeight : (size - blockHeight) / 2;
-                cellPin = (blockX + left * scale, blockY);
+                cellPin = (blockX + left * scale, blockY + below * scale);
                 spritePivot = (blockX + (column + 1) / 2.0 * blockWidth, blockY + (row + 1) / 2.0 * blockHeight);
             }
             else
@@ -143,26 +148,48 @@ namespace MelloBlack.SpriteTidy.Core
         /// </summary>
         (double x, double y) PinPoint(RgbaImage image)
         {
+            int rows = BandFor(image.Height), columns = BandFor(image.Width);
             double x = column < 0 ? 0
                 : column > 0 ? image.Width
-                : row != 0 ? BaseMiddle(image, alongRows: true, atStart: row < 0)
+                : row != 0 ? BaseMiddle(image, alongRows: true, atStart: row < 0, rows)
                 : image.Width / 2.0;
             double y = row < 0 ? 0
                 : row > 0 ? image.Height
-                : column != 0 ? BaseMiddle(image, alongRows: false, atStart: column < 0)
+                : column != 0 ? BaseMiddle(image, alongRows: false, atStart: column < 0, columns)
                 : image.Height / 2.0;
             return (x, y);
         }
 
         /// <summary>
-        /// The middle of the solid pixels in the base of an object: its bottom or top rows when
-        /// <paramref name="alongRows"/>, otherwise its left or right columns.
+        /// The point of every frame that is kept in the same place. Bottom and Top use the middle of the frame's
+        /// bottom or top rows, with the same number of rows for every frame. Center uses the middle of its bounds.
         /// </summary>
-        static double BaseMiddle(RgbaImage image, bool alongRows, bool atStart)
+        List<(double x, double y)> LineUpPoints(LineUp lineUp)
+        {
+            int rows = BandFor(parts.Min(p => p.Image.Height));
+            return parts.Select(p =>
+            {
+                var image = p.Image;
+                switch (lineUp)
+                {
+                    case LineUp.Bottom: return (BaseMiddle(image, alongRows: true, atStart: true, rows), 0.0);
+                    case LineUp.Top: return (BaseMiddle(image, alongRows: true, atStart: false, rows), (double)image.Height);
+                    default: return (image.Width / 2.0, image.Height / 2.0);
+                }
+            }).ToList();
+        }
+
+        static int BandFor(int length) => Math.Max(1, (int)Math.Round(length * BaseShare));
+
+        /// <summary>
+        /// The middle of the solid pixels in the base of an object, <paramref name="band"/> pixels thick: its bottom
+        /// or top rows when <paramref name="alongRows"/>, otherwise its left or right columns.
+        /// </summary>
+        static double BaseMiddle(RgbaImage image, bool alongRows, bool atStart, int band)
         {
             int depth = alongRows ? image.Height : image.Width;
             int across = alongRows ? image.Width : image.Height;
-            int band = Math.Max(1, (int)Math.Round(depth * BaseShare));
+            band = Math.Min(band, depth);
             int from = atStart ? 0 : depth - band;
 
             int first = int.MaxValue, last = -1;

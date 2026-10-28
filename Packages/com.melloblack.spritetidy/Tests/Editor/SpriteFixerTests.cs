@@ -9,9 +9,41 @@ namespace MelloBlack.SpriteTidy.Tests
 {
     public class SpriteFixerTests
     {
-        static IReadOnlyList<OutputImage> Fix(RgbaImage image, ImageMode mode, OutputType output = OutputType.Sheet, int size = 128, Pivot pivot = Pivot.Center)
+        static IReadOnlyList<OutputImage> Fix(RgbaImage image, ImageMode mode, OutputType output = OutputType.Sheet, int size = 128,
+            Pivot pivot = Pivot.Center, LineUp lineUp = LineUp.Bottom)
         {
-            return SpriteFixer.Fix(image, new FixSettings { Mode = mode, Output = output, Size = size, Pivot = pivot });
+            return SpriteFixer.Fix(image, new FixSettings { Mode = mode, Output = output, Size = size, Pivot = pivot, LineUp = lineUp });
+        }
+
+        /// <summary>The middle of the widest row of solid pixels in each cell of a sheet, and that row.</summary>
+        static List<(double middle, int row)> WidestRows(OutputImage sheet)
+        {
+            var result = new List<(double middle, int row)>();
+            foreach (var sprite in sheet.Sprites)
+            {
+                var cell = sheet.Image.Crop(sprite.Rect);
+                int bestWidth = -1, bestRow = 0;
+                double bestMiddle = 0;
+                for (int y = 0; y < cell.Height; y++)
+                {
+                    int first = -1, last = -1;
+                    for (int x = 0; x < cell.Width; x++)
+                    {
+                        if (cell[x, y].A < 128) continue;
+                        if (first < 0) first = x;
+                        last = x;
+                    }
+
+                    if (first < 0 || last - first <= bestWidth) continue;
+                    bestWidth = last - first;
+                    bestMiddle = (first + last + 1) / 2.0;
+                    bestRow = y;
+                }
+
+                result.Add((bestMiddle, bestRow));
+            }
+
+            return result;
         }
 
         static RgbaImage BigAndSmallSquare()
@@ -118,6 +150,50 @@ namespace MelloBlack.SpriteTidy.Tests
             Assert.That(bottoms.Max() - bottoms.Min(), Is.LessThanOrEqualTo(1), "the box stays on one line");
             Assert.That(baseMiddles.Max() - baseMiddles.Min(), Is.LessThanOrEqualTo(1), "the box does not slide sideways");
             Assert.AreEqual(1, sheet.Sprites.Select(s => (s.PivotX, s.PivotY)).Distinct().Count(), "one pivot for all frames");
+        }
+
+        [Test]
+        public void BottomLineUpIgnoresAFootThatSticksOutBelow()
+        {
+            // Like a slanted chest: in the middle frame one foot reaches lower than the rest, so its lowest rows
+            // show only that foot. The body must still line up with the other frames.
+            var image = Transparent(300, 260);
+            foreach (int x in new[] { 20, 200 })
+            {
+                FillRect(image, x, 20, 10, 10, Gold);      // left foot
+                FillRect(image, x + 50, 20, 10, 10, Gold); // right foot
+                FillRect(image, x, 30, 60, 190, Red);      // body
+            }
+
+            FillRect(image, 160, 20, 10, 25, Gold); // right foot, sticking out below
+            FillRect(image, 110, 45, 60, 190, Red); // body
+
+            var sheet = Fix(image, ImageMode.Multiple, OutputType.Sheet, 128, Pivot.Center)[0];
+
+            var middles = WidestRows(sheet).Select(r => r.middle).ToList();
+            Assert.That(middles.Max() - middles.Min(), Is.LessThanOrEqualTo(1), "the bodies line up");
+        }
+
+        [Test]
+        public void TopLineUpKeepsTheObjectStillWhenEffectsChangeBelowIt()
+        {
+            // A box with a flame under it that grows from frame to frame.
+            var image = Transparent(300, 200);
+            int[] flameWidths = { 10, 30, 50 };
+            int[] flameHeights = { 20, 50, 80 };
+            for (int i = 0; i < 3; i++)
+            {
+                int x = 20 + i * 90;
+                FillRect(image, x, 100, 60, 60, Red);
+                FillRect(image, x + 30 - flameWidths[i] / 2, 100 - flameHeights[i], flameWidths[i], flameHeights[i], Gold);
+            }
+
+            var sheet = Fix(image, ImageMode.Multiple, OutputType.Sheet, 128, Pivot.Center, LineUp.Top)[0];
+
+            var widest = WidestRows(sheet);
+            Assert.That(widest.Max(r => r.middle) - widest.Min(r => r.middle), Is.LessThanOrEqualTo(1), "the box does not slide sideways");
+            var tops = sheet.Sprites.Select(s => sheet.Image.Crop(s.Rect).FindBounds().YMax).ToList();
+            Assert.That(tops.Max() - tops.Min(), Is.LessThanOrEqualTo(1), "the box stays at the same height");
         }
 
         [Test]

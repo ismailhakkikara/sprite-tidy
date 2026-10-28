@@ -22,7 +22,8 @@ Open **Window → Sprite Tidy**, or right-click an image in the Project window a
 |---|---|
 | **Image** | The picture to fix. |
 | **Mode** | **Single**: the picture shows one object. **Multiple**: it shows several, like a sprite sheet. |
-| **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source. Made for animations: the frames are lined up on their base, so they don't move from one frame to the next. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
+| **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source. Made for animations: the frames are lined up, so they don't move from one frame to the next. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
+| **Line up** | Only for Sheet: which part of every frame stays in the same place. **Bottom**: the base, for things that stand on the ground. **Center**: the middle, for things that spin or grow from their middle. **Top**: the top, when effects appear below the object. |
 | **Size** | Width and height of each sprite, in pixels. 512 by default. |
 | **Pivot** | Where the object sits inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base. In a Sheet, the whole animation is placed this way. |
 
@@ -40,9 +41,9 @@ sprite IDs, so animations and prefabs that use them keep working.
 3. **Objects are found.** Each separate object is found in reading order. Loose bits like sparkles join the object they
    belong to, faint glows go to the nearest object, and stray specks are dropped. In Single mode everything stays one object.
 4. **Objects are scaled and placed.** All objects share one scale, so none grows or shrinks against the others. In a
-   Sheet, the frames are first lined up on the middle of their bottom edge; then the whole animation is scaled to fit
-   and placed at the pivot. So a chest stays in place even when its lid opens or sparkles appear on one side. In
-   Separate and Single, each object is placed at the pivot on its own.
+   Sheet, the frames are first lined up (with Bottom, on the middle of the lowest part of each frame, the same height
+   for every frame); then the whole animation is scaled to fit and placed at the pivot. So a chest stays in place even
+   when its lid opens or sparkles appear on one side. In Separate and Single, each object is placed at the pivot on its own.
 
 ## Installation
 
