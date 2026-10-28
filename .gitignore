@@ -12,6 +12,10 @@
 # Left behind if a test run is interrupted
 /[Aa]ssets/SpriteTidyTests_Temp*
 
+# Your own images for trying the tool in this project; never committed
+/[Aa]ssets/LocalSamples/
+/[Aa]ssets/LocalSamples.meta
+
 # Asset meta data should only be ignored when the corresponding asset is also ignored
 !/[Aa]ssets/**/*.meta
 

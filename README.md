@@ -82,8 +82,8 @@ for (int i = 0; i < result.Sprites.Count; i++)
 This repository is a Unity 6 (6000.0) project used to develop and test the package, which lives in
 [`Packages/com.melloblack.spritetidy`](Packages/com.melloblack.spritetidy). The package itself supports Unity 2022.3 and newer.
 
-Run the tests from **Window → General → Test Runner → EditMode**. To try the pipeline on a folder of your own images
-without importing them, run:
+Run the tests from **Window → General → Test Runner → EditMode**. To try the window on your own images, put them in
+`Assets/LocalSamples`, which git ignores. To try the pipeline on a folder of images without importing them, run:
 
 ```
 Unity -batchmode -quit -projectPath . -executeMethod SampleBatch.Run -sampleIn <folder> -sampleOut <folder>
