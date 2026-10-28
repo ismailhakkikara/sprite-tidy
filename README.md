@@ -25,6 +25,7 @@ Open **Window → Sprite Tidy**, or right-click an image in the Project window a
 | **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source. Made for animations: the frames are lined up, so they don't move from one frame to the next. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
 | **Line up** | Only for Sheet: which part of every frame stays in the same place. **Bottom**: the base, for things that stand on the ground. **Center**: the middle, for things that spin or grow from their middle. **Top**: the top, when effects appear below the object. |
 | **Size** | Width and height of each sprite, in pixels. 512 by default. |
+| **Margin** | Empty pixels between the object and the edges of its sprite. 8 by default. In a Sheet this also keeps neighboring sprites from bleeding into each other. |
 | **Pivot** | Where the object sits inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base. In a Sheet, the whole animation is placed this way. |
 
 The result is shown to the right of the settings, or below the **Fix** button when the window is tall and narrow,

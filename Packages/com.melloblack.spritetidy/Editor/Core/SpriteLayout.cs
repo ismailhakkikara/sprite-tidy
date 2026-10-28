@@ -11,9 +11,6 @@ namespace MelloBlack.SpriteTidy.Core
     /// </summary>
     sealed class SpriteLayout
     {
-        // Free space inside each cell edge is the cell size divided by this (at least 2 pixels).
-        const int MarginDivisor = 64;
-
         // The base of an object is this share of its height (or width) at the pivot side. For the frames of a sheet
         // it is this share of the shortest frame, so the base is equally thick in every frame. It must be thick enough
         // to reach past feet and corners to the body: a slanted chest's lowest rows show only one of its feet.
@@ -24,6 +21,8 @@ namespace MelloBlack.SpriteTidy.Core
 
         readonly List<ImagePart> parts;
         readonly int size;
+
+        // Empty pixels kept free inside each cell edge.
         readonly int margin;
 
         // Where the pivot is: column -1 left, 0 center, 1 right; row -1 bottom, 0 center, 1 top.
@@ -44,11 +43,11 @@ namespace MelloBlack.SpriteTidy.Core
         /// lined up on it, and the whole animation is placed in the cell as the pivot says. Null to place every
         /// object at the pivot on its own.
         /// </param>
-        public SpriteLayout(List<ImagePart> parts, int size, Pivot pivot, LineUp? lineUp)
+        public SpriteLayout(List<ImagePart> parts, int size, int margin, Pivot pivot, LineUp? lineUp)
         {
             this.parts = parts;
             this.size = size;
-            margin = Math.Max(2, size / MarginDivisor);
+            this.margin = margin;
             column = (int)pivot % 3 - 1;
             row = 1 - (int)pivot / 3;
 
@@ -123,9 +122,14 @@ namespace MelloBlack.SpriteTidy.Core
 
         void Draw(RgbaImage target, int index, int cellX, int cellY)
         {
+            var image = scaled[index];
             int x = cellX + (int)Math.Round(cellPin.x - pins[index].x);
             int y = cellY + (int)Math.Round(cellPin.y - pins[index].y);
-            target.Blit(scaled[index], x, y);
+
+            // Rounding can push an object a pixel past its cell when the margin is 0; keep it inside.
+            x = Math.Max(cellX, Math.Min(x, cellX + size - image.Width));
+            y = Math.Max(cellY, Math.Min(y, cellY + size - image.Height));
+            target.Blit(image, x, y);
         }
 
         SpriteArea CellSprite(int x, int y)

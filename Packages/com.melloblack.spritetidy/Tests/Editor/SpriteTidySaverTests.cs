@@ -30,7 +30,7 @@ namespace MelloBlack.SpriteTidy.Tests
 
         static System.Collections.Generic.List<string> Save(OutputType output)
         {
-            var settings = new FixSettings { Mode = ImageMode.Multiple, Output = output, Size = 128, Pivot = Pivot.Bottom };
+            var settings = new FixSettings { Mode = ImageMode.Multiple, Output = output, Size = 128, Margin = 2, Pivot = Pivot.Bottom };
             return SpriteTidySaver.Save(Source, SpriteFixer.Fix(SpriteTidyIO.Load(Source), settings));
         }
 

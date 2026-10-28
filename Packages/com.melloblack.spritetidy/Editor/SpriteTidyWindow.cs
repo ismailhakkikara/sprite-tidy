@@ -140,6 +140,8 @@ namespace MelloBlack.SpriteTidy
 
             settings.Size = Mathf.Clamp(EditorGUILayout.DelayedIntField(
                 new GUIContent("Size", "Width and height of each sprite, in pixels."), settings.Size), 16, 4096);
+            settings.Margin = Mathf.Clamp(EditorGUILayout.DelayedIntField(
+                new GUIContent("Margin", "Empty pixels between the object and the edges of its sprite."), settings.Margin), 0, settings.Size / 2 - 1);
             settings.Pivot = PivotGrid(settings.Pivot);
             if (EditorGUI.EndChangeCheck()) Arrange();
 

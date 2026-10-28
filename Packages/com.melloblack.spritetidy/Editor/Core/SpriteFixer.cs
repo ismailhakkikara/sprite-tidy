@@ -60,6 +60,9 @@ namespace MelloBlack.SpriteTidy.Core
         /// <summary>Width and height of each sprite, in pixels.</summary>
         public int Size = 512;
 
+        /// <summary>Empty pixels between the object and the edges of its sprite.</summary>
+        public int Margin = 8;
+
         public Pivot Pivot = Pivot.Center;
 
         /// <summary>Only for <see cref="OutputType.Sheet"/>.</summary>
@@ -137,7 +140,8 @@ namespace MelloBlack.SpriteTidy.Core
             if (settings.Mode == ImageMode.Single) parts = new List<ImagePart> { Combine(parts) };
 
             bool sheet = settings.Mode == ImageMode.Multiple && settings.Output == OutputType.Sheet;
-            var layout = new SpriteLayout(parts, settings.Size, settings.Pivot, sheet ? settings.LineUp : (LineUp?)null);
+            int margin = Math.Max(0, Math.Min(settings.Margin, settings.Size / 2 - 1));
+            var layout = new SpriteLayout(parts, settings.Size, margin, settings.Pivot, sheet ? settings.LineUp : (LineUp?)null);
             if (sheet) return new[] { layout.Sheet() };
             return Enumerable.Range(0, parts.Count).Select(layout.Cell).ToList();
         }

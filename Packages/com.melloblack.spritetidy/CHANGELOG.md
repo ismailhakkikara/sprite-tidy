@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Margin: empty pixels between the object and the edges of its sprite, 8 by default. It used to be fixed at
+  1/64 of the size, which is the same at the default size of 512. In a sheet it also keeps neighboring sprites
+  from bleeding into each other.
+
 ## [0.1.0] - 2026-10-28
 
 First release.

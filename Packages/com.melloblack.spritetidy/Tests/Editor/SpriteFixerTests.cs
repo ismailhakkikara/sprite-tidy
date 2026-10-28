@@ -10,9 +10,10 @@ namespace MelloBlack.SpriteTidy.Tests
     public class SpriteFixerTests
     {
         static IReadOnlyList<OutputImage> Fix(RgbaImage image, ImageMode mode, OutputType output = OutputType.Sheet, int size = 128,
-            Pivot pivot = Pivot.Center, LineUp lineUp = LineUp.Bottom)
+            Pivot pivot = Pivot.Center, LineUp lineUp = LineUp.Bottom, int margin = 2)
         {
-            return SpriteFixer.Fix(image, new FixSettings { Mode = mode, Output = output, Size = size, Pivot = pivot, LineUp = lineUp });
+            var settings = new FixSettings { Mode = mode, Output = output, Size = size, Margin = margin, Pivot = pivot, LineUp = lineUp };
+            return SpriteFixer.Fix(image, settings);
         }
 
         /// <summary>The middle of the widest row of solid pixels in each cell of a sheet, and that row.</summary>
@@ -65,6 +66,18 @@ namespace MelloBlack.SpriteTidy.Tests
             Assert.AreEqual(1, result[0].Sprites.Count);
             Assert.AreEqual(new PixelRect(0, 0, 128, 128), result[0].Sprites[0].Rect);
             Assert.That(result[0].Image.FindBounds().Width, Is.InRange(123, 125), "both squares together fill the sprite");
+        }
+
+        [TestCase(16, 16, 96)]
+        [TestCase(0, 0, 128)]
+        public void MarginKeepsEmptySpaceAroundTheObject(int margin, int expectedStart, int expectedSize)
+        {
+            var image = Transparent(100, 100);
+            FillRect(image, 20, 20, 60, 60, Red);
+
+            var result = Fix(image, ImageMode.Single, margin: margin);
+
+            Assert.AreEqual(new PixelRect(expectedStart, expectedStart, expectedSize, expectedSize), result[0].Image.FindBounds());
         }
 
         [Test]
