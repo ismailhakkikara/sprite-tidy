@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-28
+
 ### Added
 
 - Margin: empty pixels between the object and the edges of its sprite, 8 by default. It used to be fixed at
@@ -31,5 +33,6 @@ First release.
   which keeps the smooth shading of generated art; saving again keeps the sprite IDs.
 - `SpriteFixer` and `SpriteTidySaver` for doing the same from code.
 
-[Unreleased]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/melloBlack/sprite-tidy/releases/tag/v0.1.0
