@@ -1,6 +1,6 @@
 {
     "name": "MelloBlack.SpriteTidy.Editor",
-    "rootNamespace": "MelloBlack.SpriteTidy.Editor",
+    "rootNamespace": "MelloBlack.SpriteTidy",
     "references": [
         "MelloBlack.SpriteTidy.Core",
         "Unity.2D.Sprite.Editor"
