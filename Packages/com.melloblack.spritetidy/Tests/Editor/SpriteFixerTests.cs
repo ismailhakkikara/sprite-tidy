@@ -81,6 +81,45 @@ namespace MelloBlack.SpriteTidy.Tests
             Assert.That(baseWidths.Max() - baseWidths.Min(), Is.LessThanOrEqualTo(1), "every frame has the same size");
         }
 
+        [TestCase(Pivot.Center)]
+        [TestCase(Pivot.Bottom)]
+        [TestCase(Pivot.TopLeft)]
+        public void SheetFramesStayInPlaceWhateverThePivot(Pivot pivot)
+        {
+            // Like a chest opening: the same box in every frame, a lid that grows upward in the second frame and
+            // a sparkle on the left in the third. Their bounds differ, but the box must not move.
+            var image = Transparent(400, 150);
+            FillRect(image, 20, 10, 60, 40, Red);
+            FillRect(image, 150, 10, 60, 40, Red);
+            FillRect(image, 150, 50, 60, 40, Gold);
+            FillRect(image, 280, 10, 60, 40, Red);
+            FillRect(image, 266, 30, 14, 10, Gold);
+
+            var sheet = Fix(image, ImageMode.Multiple, OutputType.Sheet, 128, pivot)[0];
+
+            var bottoms = new List<int>();
+            var baseMiddles = new List<double>();
+            foreach (var sprite in sheet.Sprites)
+            {
+                var cell = sheet.Image.Crop(sprite.Rect);
+                int bottom = cell.FindBounds().Y;
+                int first = -1, last = -1;
+                for (int x = 0; x < cell.Width; x++)
+                {
+                    if (cell[x, bottom].A < 128) continue;
+                    if (first < 0) first = x;
+                    last = x;
+                }
+
+                bottoms.Add(bottom);
+                baseMiddles.Add((first + last + 1) / 2.0);
+            }
+
+            Assert.That(bottoms.Max() - bottoms.Min(), Is.LessThanOrEqualTo(1), "the box stays on one line");
+            Assert.That(baseMiddles.Max() - baseMiddles.Min(), Is.LessThanOrEqualTo(1), "the box does not slide sideways");
+            Assert.AreEqual(1, sheet.Sprites.Select(s => (s.PivotX, s.PivotY)).Distinct().Count(), "one pivot for all frames");
+        }
+
         [Test]
         public void SheetKeepsTheRowsOfTheSource()
         {

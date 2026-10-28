@@ -22,11 +22,11 @@ Open **Window → Sprite Tidy**, or right-click an image in the Project window a
 |---|---|
 | **Image** | The picture to fix. |
 | **Mode** | **Single**: the picture shows one object. **Multiple**: it shows several, like a sprite sheet. |
-| **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source; good for animations. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
+| **Output** | Only for Multiple. **Sheet**: one texture with the objects in a grid of equal cells, in the same rows as the source. Made for animations: the frames are lined up on their base, so they don't move from one frame to the next. **Separate**: one file for each object; good for icons. To pack separate sprites into one texture for performance, add them to a Unity [Sprite Atlas](https://docs.unity3d.com/Manual/sprite/atlas/atlas-landing.html). |
 | **Size** | Width and height of each sprite, in pixels. 512 by default. |
-| **Pivot** | Where each object is pinned inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base: good for animations. |
+| **Pivot** | Where the object sits inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base. In a Sheet, the whole animation is placed this way. |
 
-The preview shows the original and the result, with the pivot of each sprite marked in red. Press **Fix** to save.
+The preview shows the original and the result side by side, with the pivot of each sprite marked in red. Press **Fix** to save.
 The result is saved next to the original, with `_fixed` added to the name (`chest_fixed.png`, or `chest_fixed_01.png`,
 `chest_fixed_02.png`, … for Separate) and imported as sprites. Fixing again overwrites the same files and keeps the
 sprite IDs, so animations and prefabs that use them keep working.
@@ -39,8 +39,10 @@ sprite IDs, so animations and prefabs that use them keep working.
 2. **Alpha is cleaned up.** Nearly opaque pixels become fully opaque; haze you can hardly see is removed.
 3. **Objects are found.** Each separate object is found in reading order. Loose bits like sparkles join the object they
    belong to, faint glows go to the nearest object, and stray specks are dropped. In Single mode everything stays one object.
-4. **Objects are scaled and pinned.** All objects share one scale: the largest at which every object, pinned at the pivot,
-   fits inside its sprite. So no frame grows or shrinks against the others, and each one sits at the same point.
+4. **Objects are scaled and placed.** All objects share one scale, so none grows or shrinks against the others. In a
+   Sheet, the frames are first lined up on the middle of their bottom edge; then the whole animation is scaled to fit
+   and placed at the pivot. So a chest stays in place even when its lid opens or sparkles appear on one side. In
+   Separate and Single, each object is placed at the pivot on its own.
 
 ## Installation
 

@@ -5,9 +5,9 @@ using System.Linq;
 namespace MelloBlack.SpriteTidy.Core
 {
     /// <summary>
-    /// Scales a set of objects with one shared scale and pins each one at the pivot of its cell.
-    /// The scale is the largest at which every object, pinned at the pivot, stays inside its cell on all four sides.
-    /// Because all objects share it, no frame of an animation grows or shrinks against the others.
+    /// Scales a set of objects with one shared scale, so no object grows or shrinks against the others, and places
+    /// each one in a cell. Objects are either pinned one by one at the pivot, or, for the frames of an animation,
+    /// lined up on their base first and then placed as one block, so no frame moves against the others.
     /// </summary>
     sealed class SpriteLayout
     {
@@ -33,7 +33,15 @@ namespace MelloBlack.SpriteTidy.Core
         // The pinned point of each scaled object, in its own pixels.
         readonly List<(double x, double y)> pins = new List<(double x, double y)>();
 
-        public SpriteLayout(List<ImagePart> parts, int size, Pivot pivot)
+        // Where the pinned points go inside a cell, and the sprite pivot inside a cell, in pixels.
+        readonly (double x, double y) cellPin;
+        readonly (double x, double y) spritePivot;
+
+        /// <param name="lineUpFrames">
+        /// True for the frames of an animation: every frame is pinned at its base, and the whole animation is
+        /// placed in the cell as the pivot says. False to pin every object at the pivot on its own.
+        /// </param>
+        public SpriteLayout(List<ImagePart> parts, int size, Pivot pivot, bool lineUpFrames)
         {
             this.parts = parts;
             this.size = size;
@@ -41,8 +49,33 @@ namespace MelloBlack.SpriteTidy.Core
             column = (int)pivot % 3 - 1;
             row = 1 - (int)pivot / 3;
 
-            var sourcePins = parts.Select(p => PinPoint(p.Image)).ToList();
-            double scale = SharedScale(sourcePins);
+            List<(double x, double y)> sourcePins;
+            double scale;
+            if (lineUpFrames)
+            {
+                // Pin every frame at the middle of its bottom edge. Seen from that point, the frames together reach
+                // `left` to the left, `right` to the right and `height` up. Scale and place that block as a whole.
+                sourcePins = parts.Select(p => (BaseMiddle(p.Image, alongRows: true, atStart: true), 0.0)).ToList();
+                double left = sourcePins.Max(p => p.x);
+                double right = parts.Select((p, i) => p.Image.Width - sourcePins[i].x).Max();
+                double height = parts.Max(p => p.Image.Height);
+                double room = size - 2 * margin;
+                scale = Math.Min(room / (left + right), room / height);
+
+                double blockWidth = (left + right) * scale, blockHeight = height * scale;
+                double blockX = column < 0 ? margin : column > 0 ? size - margin - blockWidth : (size - blockWidth) / 2;
+                double blockY = row < 0 ? margin : row > 0 ? size - margin - blockHeight : (size - blockHeight) / 2;
+                cellPin = (blockX + left * scale, blockY);
+                spritePivot = (blockX + (column + 1) / 2.0 * blockWidth, blockY + (row + 1) / 2.0 * blockHeight);
+            }
+            else
+            {
+                sourcePins = parts.Select(p => PinPoint(p.Image)).ToList();
+                scale = SharedScale(sourcePins);
+                cellPin = PivotInCell();
+                spritePivot = cellPin;
+            }
+
             for (int i = 0; i < parts.Count; i++)
             {
                 var image = parts[i].Image;
@@ -85,7 +118,6 @@ namespace MelloBlack.SpriteTidy.Core
 
         void Draw(RgbaImage target, int index, int cellX, int cellY)
         {
-            var cellPin = CellPin();
             int x = cellX + (int)Math.Round(cellPin.x - pins[index].x);
             int y = cellY + (int)Math.Round(cellPin.y - pins[index].y);
             target.Blit(scaled[index], x, y);
@@ -93,12 +125,11 @@ namespace MelloBlack.SpriteTidy.Core
 
         SpriteArea CellSprite(int x, int y)
         {
-            var cellPin = CellPin();
-            return new SpriteArea(new PixelRect(x, y, size, size), (float)(cellPin.x / size), (float)(cellPin.y / size));
+            return new SpriteArea(new PixelRect(x, y, size, size), (float)(spritePivot.x / size), (float)(spritePivot.y / size));
         }
 
         /// <summary>Where the pivot is inside a cell, in pixels.</summary>
-        (double x, double y) CellPin()
+        (double x, double y) PivotInCell()
         {
             double x = column < 0 ? margin : column > 0 ? size - margin : size / 2.0;
             double y = row < 0 ? margin : row > 0 ? size - margin : size / 2.0;

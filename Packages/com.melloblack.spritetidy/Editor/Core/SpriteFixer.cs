@@ -14,7 +14,10 @@ namespace MelloBlack.SpriteTidy.Core
     /// <summary>How the objects of a <see cref="ImageMode.Multiple"/> image are saved.</summary>
     public enum OutputType
     {
-        /// <summary>One texture with the objects in a grid of equal cells, in the same rows as the source. Good for animations.</summary>
+        /// <summary>
+        /// One texture with the objects in a grid of equal cells, in the same rows as the source. For animations: the
+        /// frames are lined up on their base, so they don't move, and the whole animation is placed at the pivot.
+        /// </summary>
         Sheet,
 
         /// <summary>One file for each object. To pack them for performance, add them to a Unity Sprite Atlas.</summary>
@@ -117,8 +120,9 @@ namespace MelloBlack.SpriteTidy.Core
             if (parts.Count == 0) return Array.Empty<OutputImage>();
             if (settings.Mode == ImageMode.Single) parts = new List<ImagePart> { Combine(parts) };
 
-            var layout = new SpriteLayout(parts, settings.Size, settings.Pivot);
-            if (settings.Mode == ImageMode.Multiple && settings.Output == OutputType.Sheet) return new[] { layout.Sheet() };
+            bool sheet = settings.Mode == ImageMode.Multiple && settings.Output == OutputType.Sheet;
+            var layout = new SpriteLayout(parts, settings.Size, settings.Pivot, lineUpFrames: sheet);
+            if (sheet) return new[] { layout.Sheet() };
             return Enumerable.Range(0, parts.Count).Select(layout.Cell).ToList();
         }
 

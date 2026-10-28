@@ -89,7 +89,7 @@ namespace MelloBlack.SpriteTidy
             if (settings.Mode == ImageMode.Multiple)
             {
                 settings.Output = (OutputType)Choice("Output",
-                    "Sheet: one texture, objects in a grid of equal cells. Good for animations.\n" +
+                    "Sheet: one texture, objects in a grid of equal cells. For animations: frames are lined up on their base, so they don't move.\n" +
                     "Separate: one file for each object. To pack them for performance, add them to a Unity Sprite Atlas.",
                     (int)settings.Output, "Sheet", "Separate");
             }
@@ -122,8 +122,8 @@ namespace MelloBlack.SpriteTidy
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.PrefixLabel(new GUIContent("Pivot",
-                    "Where each object is pinned inside its sprite. The sprite pivot is set to the same point.\n" +
-                    "Bottom: objects stand on the bottom edge, centered on their base. Good for animations."));
+                    "Where the object sits inside its sprite. The sprite pivot is set to the same point.\n" +
+                    "Bottom: objects stand on the bottom edge, centered on their base."));
 
                 using (new EditorGUILayout.VerticalScope(GUILayout.Width(84)))
                 {
@@ -160,11 +160,13 @@ namespace MelloBlack.SpriteTidy
                     return;
                 }
 
-                float height = (position.height - 12f) / 2f;
-                DrawImage(GUILayoutUtility.GetRect(0, height, GUILayout.ExpandWidth(true)), "Original", image, null);
-                var area = GUILayoutUtility.GetRect(0, height, GUILayout.ExpandWidth(true));
-                if (previews.Count == 1) DrawImage(area, "Result", previews[0], result[0].Sprites);
-                else if (previews.Count > 1) DrawGrid(area);
+                var area = GUILayoutUtility.GetRect(0, 0, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+                float half = (area.width - 8f) / 2f;
+                var left = new Rect(area.x, area.y, half, area.height);
+                var right = new Rect(area.x + half + 8f, area.y, half, area.height);
+                DrawImage(left, "Original", image, null);
+                if (previews.Count == 1) DrawImage(right, "Result", previews[0], result[0].Sprites);
+                else if (previews.Count > 1) DrawGrid(right);
             }
         }
 
