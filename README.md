@@ -27,7 +27,8 @@ Open **Window → Sprite Tidy**, or right-click an image in the Project window a
 | **Size** | Width and height of each sprite, in pixels. 512 by default. |
 | **Pivot** | Where the object sits inside its sprite; the sprite pivot is set to the same point. **Bottom** makes objects stand on the bottom edge, centered on their base. In a Sheet, the whole animation is placed this way. |
 
-The preview shows the original and the result side by side, with the pivot of each sprite marked in red. Press **Fix** to save.
+The preview shows the original and the result, side by side or one above the other depending on the window's shape,
+with the pivot of each sprite marked in red. Press **Fix** to save.
 The result is saved next to the original, with `_fixed` added to the name (`chest_fixed.png`, or `chest_fixed_01.png`,
 `chest_fixed_02.png`, … for Separate) and imported as sprites. Fixing again overwrites the same files and keeps the
 sprite IDs, so animations and prefabs that use them keep working.

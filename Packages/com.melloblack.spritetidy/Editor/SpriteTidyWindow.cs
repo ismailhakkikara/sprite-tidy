@@ -171,14 +171,39 @@ namespace MelloBlack.SpriteTidy
                     return;
                 }
 
+                // Side by side or one above the other, whichever shows the images bigger.
+                const float gap = 8f;
                 var area = GUILayoutUtility.GetRect(0, 0, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
-                float half = (area.width - 8f) / 2f;
-                var left = new Rect(area.x, area.y, half, area.height);
-                var right = new Rect(area.x + half + 8f, area.y, half, area.height);
-                DrawImage(left, "Original", image, null);
-                if (previews.Count == 1) DrawImage(right, "Result", previews[0], result[0].Sprites);
-                else if (previews.Count > 1) DrawGrid(right);
+                var resultTexture = previews.Count == 1 ? previews[0] : null;
+                float sideBySideScale = ShownScale(resultTexture, (area.width - gap) / 2f, area.height);
+                float stackedScale = ShownScale(resultTexture, area.width, (area.height - gap) / 2f);
+
+                Rect first, second;
+                if (sideBySideScale >= stackedScale)
+                {
+                    float half = (area.width - gap) / 2f;
+                    first = new Rect(area.x, area.y, half, area.height);
+                    second = new Rect(area.x + half + gap, area.y, half, area.height);
+                }
+                else
+                {
+                    float half = (area.height - gap) / 2f;
+                    first = new Rect(area.x, area.y, area.width, half);
+                    second = new Rect(area.x, area.y + half + gap, area.width, half);
+                }
+
+                DrawImage(first, "Original", image, null);
+                if (previews.Count == 1) DrawImage(second, "Result", previews[0], result[0].Sprites);
+                else if (previews.Count > 1) DrawGrid(second);
             }
+        }
+
+        /// <summary>How big the original and the result would be shown in two spaces of this size (the smaller of the two).</summary>
+        float ShownScale(Texture resultTexture, float width, float height)
+        {
+            height -= 18f; // the label above each image
+            float Fit(Texture texture) => texture == null ? float.MaxValue : Mathf.Min(width / texture.width, height / texture.height);
+            return Mathf.Min(Fit(image), Fit(resultTexture));
         }
 
         /// <summary>Several separate files: one small preview each.</summary>
