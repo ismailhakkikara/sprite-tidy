@@ -1,0 +1,19 @@
+{
+    "name": "MelloBlack.SpriteTidy.Editor",
+    "rootNamespace": "MelloBlack.SpriteTidy.Editor",
+    "references": [
+        "MelloBlack.SpriteTidy.Core",
+        "Unity.2D.Sprite.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

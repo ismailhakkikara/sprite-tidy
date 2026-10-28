@@ -1,0 +1,28 @@
+{
+  "name": "com.melloblack.spritetidy",
+  "version": "0.1.0",
+  "displayName": "Sprite Tidy",
+  "description": "Editor tool that tidies AI-generated sprites (ChatGPT and others): removes solid or fake-checkerboard backgrounds, trims, fits content onto a consistent canvas with padding and alignment, and fixes sprite sheet jitter.",
+  "unity": "2022.3",
+  "license": "MIT",
+  "author": {
+    "name": "İsmail Hakkı Kara",
+    "url": "https://github.com/melloBlack"
+  },
+  "documentationUrl": "https://github.com/melloBlack/sprite-tidy#readme",
+  "changelogUrl": "https://github.com/melloBlack/sprite-tidy/blob/main/Packages/com.melloblack.spritetidy/CHANGELOG.md",
+  "licensesUrl": "https://github.com/melloBlack/sprite-tidy/blob/main/LICENSE",
+  "keywords": [
+    "sprite",
+    "spritesheet",
+    "2d",
+    "texture",
+    "background-removal",
+    "ai",
+    "chatgpt",
+    "editor"
+  ],
+  "dependencies": {
+    "com.unity.2d.sprite": "1.0.0"
+  }
+}

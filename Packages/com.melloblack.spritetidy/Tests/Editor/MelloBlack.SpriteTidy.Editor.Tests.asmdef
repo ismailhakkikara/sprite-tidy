@@ -1,0 +1,25 @@
+{
+    "name": "MelloBlack.SpriteTidy.Editor.Tests",
+    "rootNamespace": "MelloBlack.SpriteTidy.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "MelloBlack.SpriteTidy.Core",
+        "MelloBlack.SpriteTidy.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
