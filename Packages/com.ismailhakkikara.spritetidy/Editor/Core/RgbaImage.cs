@@ -1,6 +1,6 @@
 using System;
 
-namespace MelloBlack.SpriteTidy.Core
+namespace IsmailHakkiKara.SpriteTidy.Core
 {
     /// <summary>
     /// A mutable RGBA image in memory. Pixels are stored row by row starting with the bottom row,

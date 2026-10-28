@@ -1,6 +1,6 @@
 using System;
 
-namespace MelloBlack.SpriteTidy.Core
+namespace IsmailHakkiKara.SpriteTidy.Core
 {
     /// <summary>
     /// Removes plain and checkerboard backgrounds. The background is filled in from the image border, holes that show

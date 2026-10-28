@@ -1,6 +1,6 @@
 using System;
 
-namespace MelloBlack.SpriteTidy.Core
+namespace IsmailHakkiKara.SpriteTidy.Core
 {
     /// <summary>A pixel with 8-bit straight (non-premultiplied) RGBA channels, laid out like UnityEngine.Color32.</summary>
     [Serializable]

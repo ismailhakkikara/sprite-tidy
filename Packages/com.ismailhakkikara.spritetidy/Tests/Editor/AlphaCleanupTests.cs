@@ -1,7 +1,7 @@
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy.Core;
 using NUnit.Framework;
 
-namespace MelloBlack.SpriteTidy.Tests
+namespace IsmailHakkiKara.SpriteTidy.Tests
 {
     public class AlphaCleanupTests
     {

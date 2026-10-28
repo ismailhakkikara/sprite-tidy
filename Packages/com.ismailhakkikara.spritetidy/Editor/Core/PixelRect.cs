@@ -1,6 +1,6 @@
 using System;
 
-namespace MelloBlack.SpriteTidy.Core
+namespace IsmailHakkiKara.SpriteTidy.Core
 {
     /// <summary>An integer pixel rectangle. Y grows upward, matching Unity textures.</summary>
     [Serializable]

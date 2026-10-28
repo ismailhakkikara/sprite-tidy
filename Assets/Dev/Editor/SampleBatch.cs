@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using MelloBlack.SpriteTidy;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy;
+using IsmailHakkiKara.SpriteTidy.Core;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 

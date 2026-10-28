@@ -1,0 +1,28 @@
+{
+  "name": "com.ismailhakkikara.spritetidy",
+  "version": "0.2.0",
+  "displayName": "Sprite Tidy",
+  "description": "Editor tool that cleans up AI-generated sprites (ChatGPT and others): removes plain and fake-checkerboard backgrounds, fixes not-quite-opaque alpha, puts every object on a sprite of the same size, and keeps sprite sheet frames from moving.",
+  "unity": "2022.3",
+  "license": "MIT",
+  "author": {
+    "name": "İsmail Hakkı Kara",
+    "url": "https://github.com/ismailhakkikara"
+  },
+  "documentationUrl": "https://github.com/ismailhakkikara/sprite-tidy#readme",
+  "changelogUrl": "https://github.com/ismailhakkikara/sprite-tidy/blob/main/Packages/com.ismailhakkikara.spritetidy/CHANGELOG.md",
+  "licensesUrl": "https://github.com/ismailhakkikara/sprite-tidy/blob/main/LICENSE",
+  "keywords": [
+    "sprite",
+    "spritesheet",
+    "2d",
+    "texture",
+    "background-removal",
+    "ai",
+    "chatgpt",
+    "editor"
+  ],
+  "dependencies": {
+    "com.unity.2d.sprite": "1.0.0"
+  }
+}

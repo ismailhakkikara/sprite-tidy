@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy.Core;
 using NUnit.Framework;
-using static MelloBlack.SpriteTidy.Tests.TestImages;
+using static IsmailHakkiKara.SpriteTidy.Tests.TestImages;
 
-namespace MelloBlack.SpriteTidy.Tests
+namespace IsmailHakkiKara.SpriteTidy.Tests
 {
     public class SpriteFixerTests
     {

@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy.Core;
 using UnityEditor;
 using UnityEditor.U2D.Sprites;
 using UnityEngine;
 
-namespace MelloBlack.SpriteTidy
+namespace IsmailHakkiKara.SpriteTidy
 {
     /// <summary>Saves fixed images next to the source image, or over it, and imports them as sprites.</summary>
     public static class SpriteTidySaver

@@ -1,4 +1,4 @@
-namespace MelloBlack.SpriteTidy.Core
+namespace IsmailHakkiKara.SpriteTidy.Core
 {
     /// <summary>Makes nearly opaque pixels fully opaque and removes nearly invisible haze.</summary>
     public static class AlphaCleanup

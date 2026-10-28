@@ -62,13 +62,13 @@ Requires Unity 2022.3 or newer.
 In the Package Manager, choose **+ → Add package from git URL…** and enter:
 
 ```
-https://github.com/melloBlack/sprite-tidy.git?path=/Packages/com.melloblack.spritetidy
+https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy
 ```
 
 Or add it to `Packages/manifest.json`:
 
 ```json
-"com.melloblack.spritetidy": "https://github.com/melloBlack/sprite-tidy.git?path=/Packages/com.melloblack.spritetidy"
+"com.ismailhakkikara.spritetidy": "https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy"
 ```
 
 To use a fixed release, add its tag to the end of the URL, for example `#v0.2.0`.
@@ -76,8 +76,8 @@ To use a fixed release, add its tag to the end of the URL, for example `#v0.2.0`
 ### From code
 
 ```csharp
-using MelloBlack.SpriteTidy;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy;
+using IsmailHakkiKara.SpriteTidy.Core;
 
 var settings = new FixSettings { Mode = ImageMode.Multiple, Output = OutputType.Sheet, Size = 256, Pivot = Pivot.Bottom };
 var images = SpriteFixer.Fix(SpriteTidyIO.Load("Assets/Art/chest.png"), settings);
@@ -87,7 +87,7 @@ SpriteTidySaver.Save("Assets/Art/chest.png", images);
 ## Development
 
 This repository is a Unity 6 (6000.0) project used to build and test the package, which lives in
-[`Packages/com.melloblack.spritetidy`](Packages/com.melloblack.spritetidy). The package itself supports Unity 2022.3 and newer.
+[`Packages/com.ismailhakkikara.spritetidy`](Packages/com.ismailhakkikara.spritetidy). The package itself supports Unity 2022.3 and newer.
 
 Run the tests from **Window → General → Test Runner → EditMode**. To try the window on your own images, put them in
 `Assets/LocalSamples`, which git ignores. To fix a whole folder of images outside the project, run:

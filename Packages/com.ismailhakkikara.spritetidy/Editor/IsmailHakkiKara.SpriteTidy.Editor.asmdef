@@ -1,7 +1,10 @@
 {
-    "name": "MelloBlack.SpriteTidy.Core",
-    "rootNamespace": "MelloBlack.SpriteTidy.Core",
-    "references": [],
+    "name": "IsmailHakkiKara.SpriteTidy.Editor",
+    "rootNamespace": "IsmailHakkiKara.SpriteTidy",
+    "references": [
+        "IsmailHakkiKara.SpriteTidy.Core",
+        "Unity.2D.Sprite.Editor"
+    ],
     "includePlatforms": [
         "Editor"
     ],
@@ -12,5 +15,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": true
+    "noEngineReferences": false
 }

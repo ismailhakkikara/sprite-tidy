@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- New name: the package is now `com.ismailhakkikara.spritetidy`, at https://github.com/ismailhakkikara/sprite-tidy,
+  and its code is in the `IsmailHakkiKara.SpriteTidy` namespace. They were `com.melloblack.spritetidy` and
+  `MelloBlack.SpriteTidy`. To update, replace the `com.melloblack.spritetidy` line in `Packages/manifest.json` with
+  `"com.ismailhakkikara.spritetidy": "https://github.com/ismailhakkikara/sprite-tidy.git?path=/Packages/com.ismailhakkikara.spritetidy"`.
+
 ## [0.2.0] - 2026-10-28
 
 ### Added
@@ -47,7 +54,7 @@ First release.
   which keeps the smooth shading of generated art; saving again keeps the sprite IDs.
 - `SpriteFixer` and `SpriteTidySaver` for doing the same from code.
 
-[Unreleased]: https://github.com/melloBlack/sprite-tidy/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/melloBlack/sprite-tidy/releases/tag/v0.1.0
+[Unreleased]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/ismailhakkikara/sprite-tidy/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/ismailhakkikara/sprite-tidy/releases/tag/v0.1.0

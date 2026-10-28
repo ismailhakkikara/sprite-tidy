@@ -1,11 +1,11 @@
 {
-    "name": "MelloBlack.SpriteTidy.Editor.Tests",
-    "rootNamespace": "MelloBlack.SpriteTidy.Tests",
+    "name": "IsmailHakkiKara.SpriteTidy.Editor.Tests",
+    "rootNamespace": "IsmailHakkiKara.SpriteTidy.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "MelloBlack.SpriteTidy.Core",
-        "MelloBlack.SpriteTidy.Editor",
+        "IsmailHakkiKara.SpriteTidy.Core",
+        "IsmailHakkiKara.SpriteTidy.Editor",
         "Unity.2D.Sprite.Editor"
     ],
     "includePlatforms": [

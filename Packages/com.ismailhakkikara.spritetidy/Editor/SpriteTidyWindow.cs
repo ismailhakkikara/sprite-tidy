@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy.Core;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace MelloBlack.SpriteTidy
+namespace IsmailHakkiKara.SpriteTidy
 {
     public sealed class SpriteTidyWindow : EditorWindow
     {
@@ -16,7 +16,7 @@ namespace MelloBlack.SpriteTidy
         const float Thumbnail = 56f;
         const float ThumbnailGap = 4f;
         const int PickerId = 0x5717;
-        const string DontAskBeforeOverwrite = "MelloBlack.SpriteTidy.DontAskBeforeOverwrite";
+        const string DontAskBeforeOverwrite = "IsmailHakkiKara.SpriteTidy.DontAskBeforeOverwrite";
         static readonly Color PivotColor = new Color(1f, 0.25f, 0.25f);
         static readonly Color CellColor = new Color(1f, 1f, 1f, 0.35f);
         static readonly Color ShownColor = new Color(0.25f, 0.6f, 1f);

@@ -1,8 +1,8 @@
 using System.IO;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy.Core;
 using UnityEngine;
 
-namespace MelloBlack.SpriteTidy
+namespace IsmailHakkiKara.SpriteTidy
 {
     /// <summary>Moves images between files, Unity textures and <see cref="RgbaImage"/>.</summary>
     public static class SpriteTidyIO

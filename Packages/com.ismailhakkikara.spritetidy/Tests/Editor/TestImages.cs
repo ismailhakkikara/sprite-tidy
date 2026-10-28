@@ -1,7 +1,7 @@
 using System;
-using MelloBlack.SpriteTidy.Core;
+using IsmailHakkiKara.SpriteTidy.Core;
 
-namespace MelloBlack.SpriteTidy.Tests
+namespace IsmailHakkiKara.SpriteTidy.Tests
 {
     /// <summary>Builds small synthetic images for the tests.</summary>
     static class TestImages

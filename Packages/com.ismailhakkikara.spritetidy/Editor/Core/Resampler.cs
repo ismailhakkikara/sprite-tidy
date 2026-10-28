@@ -1,6 +1,6 @@
 using System;
 
-namespace MelloBlack.SpriteTidy.Core
+namespace IsmailHakkiKara.SpriteTidy.Core
 {
     /// <summary>
     /// Resizes images with a bicubic filter. When shrinking, the filter gets wider so every source pixel counts
