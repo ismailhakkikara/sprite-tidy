@@ -9,41 +9,35 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// Development helper, not part of the package: runs the pipeline over a folder of images outside the project and
-/// writes contact sheets for checking the results by eye.
+/// Development helper, not part of the package: fixes every image in a folder outside the project as a Multiple
+/// image and writes, for each one, the sheet over a checkerboard and an "onion skin" of all cells on top of each other.
+/// In the onion skin, frames that drift show up as doubled edges.
 ///
-/// Unity -batchmode -quit -projectPath . -executeMethod SampleBatch.Run -sampleIn &lt;folder&gt; -sampleOut &lt;folder&gt;
+/// Unity -batchmode -quit -projectPath . -executeMethod SampleBatch.Run -sampleIn &lt;folder&gt; -sampleOut &lt;folder&gt; [-pivot Bottom]
 /// </summary>
 public static class SampleBatch
 {
-    const int SheetCell = 256;
-
     public static void Run()
     {
         string input = Argument("-sampleIn");
         string output = Argument("-sampleOut");
+        var pivot = (Pivot)Enum.Parse(typeof(Pivot), Argument("-pivot", "Bottom"));
         Directory.CreateDirectory(output);
 
-        var settings = new TidySettings();
+        var settings = new FixSettings { Mode = ImageMode.Multiple, Output = OutputType.Sheet, Size = 256, Pivot = pivot };
         var summary = new StringBuilder();
-        var files = Directory.GetFiles(input)
-            .Where(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase);
-
-        foreach (string file in files)
+        foreach (string file in Directory.GetFiles(input, "*.png").OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
         {
             string name = Path.GetFileNameWithoutExtension(file);
-            var source = SpriteTidyIO.Load(file);
             var stopwatch = Stopwatch.StartNew();
-            var result = TidyPipeline.Process(source, settings);
+            var clean = SpriteFixer.Clean(SpriteTidyIO.Load(file));
+            var sheet = SpriteFixer.Arrange(clean, settings)[0];
             stopwatch.Stop();
 
-            SpriteTidyIO.SavePng(OverChecker(result.Cleaned), Path.Combine(output, name + "__cleaned.png"));
-            SpriteTidyIO.SavePng(ContactSheet(result), Path.Combine(output, name + "__sprites.png"));
+            SpriteTidyIO.SavePng(OverChecker(sheet.Image), Path.Combine(output, name + "__sheet.png"));
+            SpriteTidyIO.SavePng(OverChecker(Onion(sheet, settings.Size)), Path.Combine(output, name + "__onion.png"));
 
-            string line = $"{name}: {source.Width}x{source.Height}, background {result.Background}, " +
-                          $"{result.Sprites.Count} sprites, opaque {OpaqueShare(source):P0} -> {OpaqueShare(result.Cleaned):P0}, " +
-                          $"{stopwatch.ElapsedMilliseconds} ms";
+            string line = $"{name}: background {clean.Background}, {clean.Parts.Count} objects, {stopwatch.ElapsedMilliseconds} ms";
             summary.AppendLine(line);
             Debug.Log("[SampleBatch] " + line);
         }
@@ -51,46 +45,55 @@ public static class SampleBatch
         File.WriteAllText(Path.Combine(output, "summary.txt"), summary.ToString());
     }
 
-    static string Argument(string name)
+    static string Argument(string name, string fallback = null)
     {
         var args = Environment.GetCommandLineArgs();
         int index = Array.IndexOf(args, name);
-        if (index < 0 || index + 1 >= args.Length) throw new ArgumentException($"Missing {name} <folder> argument.");
-        return args[index + 1];
+        if (index >= 0 && index + 1 < args.Length) return args[index + 1];
+        return fallback ?? throw new ArgumentException($"Missing {name} argument.");
     }
 
-    /// <summary>All sprites side by side, each over a checkerboard with its canvas edge marked.</summary>
-    static RgbaImage ContactSheet(TidyResult result)
+    /// <summary>All cells of a sheet blended on top of each other.</summary>
+    static RgbaImage Onion(OutputImage sheet, int size)
     {
-        int count = Math.Max(1, result.Sprites.Count);
-        int columns = Math.Min(count, 5);
-        int rows = (count + columns - 1) / columns;
-        var sheet = new RgbaImage(columns * (SheetCell + 8) + 8, rows * (SheetCell + 8) + 8);
-        Fill(sheet, new Rgba32(40, 40, 40));
-
-        for (int i = 0; i < result.Sprites.Count; i++)
+        var sums = new float[size * size * 4];
+        foreach (var sprite in sheet.Sprites)
         {
-            var image = result.Sprites[i].Image;
-            double scale = Math.Min((double)SheetCell / image.Width, (double)SheetCell / image.Height);
-            var small = Resampler.Resize(image, Math.Max(1, (int)(image.Width * scale)), Math.Max(1, (int)(image.Height * scale)), ResampleFilter.Bilinear);
-            var cell = OverChecker(small);
-            int column = i % columns, row = rows - 1 - i / columns;
-            sheet.Blit(cell, 8 + column * (SheetCell + 8), 8 + row * (SheetCell + 8));
+            var cell = sheet.Image.Crop(sprite.Rect);
+            for (int i = 0; i < cell.Pixels.Length; i++)
+            {
+                var p = cell.Pixels[i];
+                float a = p.A / 255f;
+                sums[i * 4] += p.R * a;
+                sums[i * 4 + 1] += p.G * a;
+                sums[i * 4 + 2] += p.B * a;
+                sums[i * 4 + 3] += a;
+            }
         }
 
-        return sheet;
+        var onion = new RgbaImage(size, size);
+        int n = sheet.Sprites.Count;
+        for (int i = 0; i < onion.Pixels.Length; i++)
+        {
+            float a = sums[i * 4 + 3];
+            if (a <= 0) continue;
+            onion.Pixels[i] = new Rgba32((byte)(sums[i * 4] / a), (byte)(sums[i * 4 + 1] / a), (byte)(sums[i * 4 + 2] / a), (byte)Math.Min(255f, a / n * 255f));
+        }
+
+        return onion;
     }
 
+    /// <summary>The image over a gray checkerboard, with a magenta line on each cell border.</summary>
     static RgbaImage OverChecker(RgbaImage image)
     {
         var result = new RgbaImage(image.Width, image.Height);
         for (int y = 0; y < image.Height; y++)
         for (int x = 0; x < image.Width; x++)
         {
-            bool edge = x == 0 || y == 0 || x == image.Width - 1 || y == image.Height - 1;
-            var back = edge ? new Rgba32(255, 0, 255) : ((x / 8 + y / 8) & 1) == 0 ? new Rgba32(205, 205, 205) : new Rgba32(150, 150, 150);
+            bool line = x % 256 == 0 || y % 256 == 0;
+            var back = line ? new Rgba32(255, 0, 255) : ((x / 8 + y / 8) & 1) == 0 ? new Rgba32(205, 205, 205) : new Rgba32(150, 150, 150);
             var p = image[x, y];
-            float a = edge ? 0f : p.A / 255f;
+            float a = line ? 0f : p.A / 255f;
             result[x, y] = new Rgba32(
                 (byte)(p.R * a + back.R * (1 - a)),
                 (byte)(p.G * a + back.G * (1 - a)),
@@ -98,17 +101,5 @@ public static class SampleBatch
         }
 
         return result;
-    }
-
-    /// <summary>Share of visible pixels that are fully opaque.</summary>
-    static double OpaqueShare(RgbaImage image)
-    {
-        int visible = image.Pixels.Count(p => p.A > 0);
-        return visible == 0 ? 0 : (double)image.Pixels.Count(p => p.A == 255) / visible;
-    }
-
-    static void Fill(RgbaImage image, Rgba32 color)
-    {
-        for (int i = 0; i < image.Pixels.Length; i++) image.Pixels[i] = color;
     }
 }

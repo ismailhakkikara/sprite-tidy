@@ -1,102 +1,79 @@
 using System;
-using System.Collections.Generic;
 
 namespace MelloBlack.SpriteTidy.Core
 {
-    public enum HoleFilling
-    {
-        /// <summary>
-        /// Remove enclosed holes on checkerboard backgrounds only. On a solid background an enclosed area
-        /// of the background color is often part of the art (a black panel inside a frame, say).
-        /// </summary>
-        Auto,
-        Off,
-        On,
-    }
-
-    [Serializable]
-    public sealed class BackgroundSettings
-    {
-        public bool Enabled = true;
-
-        /// <summary>RGB distance within which a pixel counts as background.</summary>
-        public int Tolerance = 40;
-
-        public HoleFilling Holes = HoleFilling.Auto;
-
-        /// <summary>Smallest enclosed hole that is removed, as a percentage of the image area.</summary>
-        public float MinHoleAreaPercent = 0.05f;
-
-        /// <summary>Width in pixels of the band along content edges whose colors are un-blended from the background.</summary>
-        public int EdgeBand = 2;
-    }
-
     /// <summary>
-    /// Removes solid and checkerboard backgrounds: flood-fills the background from the image border, optionally removes
-    /// enclosed holes, then un-blends the anti-aliased edge pixels so no light or dark halo is left around the content.
+    /// Removes plain and checkerboard backgrounds. The background is filled in from the image border, holes that show
+    /// a checkerboard (like the middle of a ring) are removed too, and the soft edge pixels are un-blended so no light
+    /// or dark halo is left around the objects.
     /// </summary>
     public static class BackgroundRemover
     {
-        // Below this distance between content and background color an edge pixel can't be un-blended reliably.
+        // How far (RGB distance) a pixel's color may be from a background color and still count as background.
+        internal const int Tolerance = 40;
+
+        // Width in pixels of the soft edge whose colors are un-blended from the background.
+        const int EdgeWidth = 2;
+
+        // Below this distance between object and background color an edge pixel can't be un-blended reliably.
         const int MinUnblendContrast = 30;
 
-        // Share of a checkerboard hole each of the two shades must cover.
+        // Smallest hole that is removed, as a share of the image area.
+        const double MinHoleShare = 0.0005;
+
+        // Each of the two checkerboard colors must cover at least this share of a hole.
         const double MinHoleColorShare = 0.2;
 
-        // Lower bound of the tight tolerance used to match checkerboard holes.
+        // Lowest tolerance used when looking for checkerboard holes.
         const int MinHoleTolerance = 6;
 
-        // How far a confirmed hole may grow with the full tolerance, as a share of the image's longer side.
+        // How far a found hole may grow with the full tolerance, as a share of the image's longer side.
         const double HoleGrowth = 0.01;
 
-        public static BackgroundModel Apply(RgbaImage image, BackgroundSettings settings)
+        /// <summary>Makes the background of <paramref name="image"/> transparent and returns what kind it was.</summary>
+        public static BackgroundType Remove(RgbaImage image)
         {
-            var model = BackgroundDetector.Detect(image, settings.Tolerance);
-            if (model.Kind == BackgroundKind.Transparent) return model;
+            var type = BackgroundDetector.Detect(image, out var colors);
+            if (type == BackgroundType.Transparent) return type;
 
             int w = image.Width, h = image.Height, n = w * h;
             var pixels = image.Pixels;
-            var colors = new Rgba32[model.Colors.Count];
-            for (int i = 0; i < colors.Length; i++) colors[i] = model.Colors[i];
-
-            int tolerance2 = settings.Tolerance * settings.Tolerance;
-            var matches = new bool[n];
-            for (int i = 0; i < n; i++)
-                matches[i] = pixels[i].A < BackgroundDetector.TransparentAlpha || NearestDistanceSquared(pixels[i], colors) <= tolerance2;
+            var matches = MatchColors(pixels, colors, Tolerance);
 
             var background = new bool[n];
             var queue = new int[n];
             FloodFromBorder(matches, background, queue, w, h);
 
-            bool checkerboard = model.Kind == BackgroundKind.Checkerboard;
-            bool fillHoles = settings.Holes == HoleFilling.On || (settings.Holes == HoleFilling.Auto && checkerboard);
-            if (fillHoles)
+            // On a plain background, a closed area of the same color is often part of the art (a black panel inside a
+            // frame), so only checkerboard holes are removed. A hole must show both checkerboard colors. When the two
+            // colors are close (dark checkerboards), that test only works if hole pixels match them closely; with the
+            // full tolerance, dark outlines would pass as holes. A found hole then grows a short way with the full
+            // tolerance to take in the noise and shading generators add inside it.
+            if (type == BackgroundType.Checkerboard)
             {
-                // A checkerboard hole must show both shades. When the shades are close (dark checkerboards), that test
-                // only means something if hole pixels match the shades closely; with the full tolerance, dark outlines
-                // would pass as holes. A confirmed hole then grows a short way with the full tolerance to take in the
-                // noise and shading generators add inside it.
-                var seedMatches = matches;
-                if (checkerboard)
-                {
-                    double separation = Math.Sqrt(Rgba32.DistanceSquared(colors[0], colors[1]));
-                    double seedTolerance = Math.Min(settings.Tolerance, Math.Max(Math.Max(MinHoleTolerance, settings.Tolerance / 3.0), separation / 2));
-                    seedMatches = new bool[n];
-                    for (int i = 0; i < n; i++)
-                        seedMatches[i] = pixels[i].A < BackgroundDetector.TransparentAlpha || NearestDistanceSquared(pixels[i], colors) <= seedTolerance * seedTolerance;
-                }
-
-                int minArea = Math.Max(16, (int)(n * (double)settings.MinHoleAreaPercent / 100.0));
+                double colorDistance = Math.Sqrt(Rgba32.DistanceSquared(colors[0], colors[1]));
+                double holeTolerance = Math.Min(Tolerance, Math.Max(Math.Max(MinHoleTolerance, Tolerance / 3.0), colorDistance / 2));
+                var holeMatches = MatchColors(pixels, colors, holeTolerance);
+                int minArea = Math.Max(16, (int)(n * MinHoleShare));
                 int growSteps = Math.Max(2, (int)Math.Round(Math.Max(w, h) * HoleGrowth));
-                FillHoles(pixels, seedMatches, matches, background, queue, w, h, colors, checkerboard, minArea, growSteps);
+                FillHoles(pixels, holeMatches, matches, background, queue, w, h, colors, minArea, growSteps);
             }
 
-            if (settings.EdgeBand > 0) RefineEdges(pixels, background, queue, w, h, settings.EdgeBand);
+            RefineEdges(pixels, background, queue, w, h, EdgeWidth);
 
             for (int i = 0; i < n; i++)
                 if (background[i]) pixels[i] = Rgba32.Transparent;
 
-            return model;
+            return type;
+        }
+
+        static bool[] MatchColors(Rgba32[] pixels, Rgba32[] colors, double tolerance)
+        {
+            double tolerance2 = tolerance * tolerance;
+            var matches = new bool[pixels.Length];
+            for (int i = 0; i < pixels.Length; i++)
+                matches[i] = pixels[i].A < BackgroundDetector.TransparentAlpha || NearestDistanceSquared(pixels[i], colors) <= tolerance2;
+            return matches;
         }
 
         static void FloodFromBorder(bool[] matches, bool[] background, int[] queue, int w, int h)
@@ -137,7 +114,7 @@ namespace MelloBlack.SpriteTidy.Core
         /// <paramref name="growSteps"/> pixels into neighboring <paramref name="growMatches"/> pixels.
         /// </summary>
         static void FillHoles(Rgba32[] pixels, bool[] seedMatches, bool[] growMatches, bool[] background, int[] queue, int w, int h,
-            Rgba32[] colors, bool requireBothColors, int minArea, int growSteps)
+            Rgba32[] colors, int minArea, int growSteps)
         {
             int n = w * h;
             var visited = new bool[n];
@@ -160,7 +137,7 @@ namespace MelloBlack.SpriteTidy.Core
                 }
 
                 if (tail < minArea) continue;
-                if (requireBothColors && !CoversBothColors(pixels, queue, tail, colors)) continue;
+                if (!CoversBothColors(pixels, queue, tail, colors)) continue;
 
                 for (int k = 0; k < tail; k++)
                 {

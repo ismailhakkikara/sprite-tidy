@@ -1,464 +1,321 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using MelloBlack.SpriteTidy.Core;
 using UnityEditor;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
 
 namespace MelloBlack.SpriteTidy
 {
     public sealed class SpriteTidyWindow : EditorWindow
     {
-        const float SidebarWidth = 340f;
-        const float ThumbnailSize = 128f;
-        const double PreviewDelay = 0.3;
+        const float PanelWidth = 300f;
+        static readonly Color PivotColor = new Color(1f, 0.25f, 0.25f);
+        static readonly Color CellColor = new Color(1f, 1f, 1f, 0.35f);
 
-        [SerializeField] List<Texture2D> inputs = new List<Texture2D>();
-        [SerializeField] SpriteTidyPreset preset;
-        [SerializeField] SpriteTidyPreset defaultPreset;
-        [SerializeField] string outputFolder = "";
-        [SerializeField] int selectedIndex = -1;
+        [SerializeField] Texture2D image;
+        [SerializeField] FixSettings settings = new FixSettings();
 
-        SerializedObject presetObject;
-        Vector2 inputScroll, settingsScroll, spriteScroll;
-        GUIStyle inputStyle;
+        CleanImage clean;
+        Texture2D cleanFor;
+        IReadOnlyList<OutputImage> result;
+        readonly List<Texture2D> previews = new List<Texture2D>();
+        string message;
         Texture2D checker;
-
-        Texture2D loadedTexture;
-        RgbaImage loadedImage;
-        Texture2D cleanedPreview;
-        readonly List<Texture2D> spritePreviews = new List<Texture2D>();
-        string previewInfo;
-        bool previewDirty;
-        double previewDueTime;
-        int presetDirtyCount = -1;
 
         [MenuItem("Window/Sprite Tidy")]
         public static SpriteTidyWindow Open()
         {
             var window = GetWindow<SpriteTidyWindow>();
             window.titleContent = new GUIContent("Sprite Tidy");
-            window.minSize = new Vector2(760, 460);
+            window.minSize = new Vector2(640, 420);
             return window;
         }
 
-        [MenuItem("Assets/Sprite Tidy/Open in Sprite Tidy", false, 1100)]
-        static void OpenWithSelection() => Open().Add(Collect(Selection.GetFiltered<Object>(SelectionMode.Assets)));
+        [MenuItem("Assets/Fix with Sprite Tidy", false, 1100)]
+        static void OpenWithSelection() => Open().SetImage(Selection.activeObject as Texture2D);
 
-        [MenuItem("Assets/Sprite Tidy/Open in Sprite Tidy", true)]
-        static bool CanOpenWithSelection() => Collect(Selection.GetFiltered<Object>(SelectionMode.Assets)).Any();
+        [MenuItem("Assets/Fix with Sprite Tidy", true)]
+        static bool CanOpenWithSelection() => Selection.activeObject is Texture2D;
 
-        /// <summary>Adds textures to the list, skipping ones already in it.</summary>
-        public void Add(IEnumerable<Texture2D> textures)
+        public void SetImage(Texture2D texture)
         {
-            int before = inputs.Count;
-            foreach (var texture in textures)
-                if (texture != null && !inputs.Contains(texture)) inputs.Add(texture);
-
-            if (inputs.Count > before && (selectedIndex < 0 || selectedIndex >= inputs.Count)) Select(before);
-            Repaint();
+            image = texture;
+            clean = null;
+            Refresh();
         }
 
-        Texture2D SelectedTexture => selectedIndex >= 0 && selectedIndex < inputs.Count ? inputs[selectedIndex] : null;
-
-        SpriteTidyPreset ActivePreset
-        {
-            get
-            {
-                if (preset != null) return preset;
-                if (defaultPreset == null)
-                {
-                    defaultPreset = CreateInstance<SpriteTidyPreset>();
-                    defaultPreset.name = "Default";
-                    defaultPreset.hideFlags = HideFlags.HideAndDontSave;
-                }
-
-                return defaultPreset;
-            }
-        }
-
-        Texture2D Checker
-        {
-            get
-            {
-                if (checker != null) return checker;
-                checker = new Texture2D(2, 2, TextureFormat.RGBA32, false)
-                {
-                    hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Point,
-                    wrapMode = TextureWrapMode.Repeat,
-                };
-                var light = new Color32(204, 204, 204, 255);
-                var dark = new Color32(160, 160, 160, 255);
-                checker.SetPixels32(new[] { light, dark, dark, light });
-                checker.Apply(false);
-                return checker;
-            }
-        }
-
-        void OnEnable()
-        {
-            EditorApplication.update += OnEditorUpdate;
-            MarkPreviewDirty(0);
-        }
+        void OnEnable() => Refresh();
 
         void OnDisable()
         {
-            EditorApplication.update -= OnEditorUpdate;
-            DestroyPreviews();
+            ClearPreviews();
             if (checker != null) DestroyImmediate(checker);
-        }
-
-        void OnDestroy()
-        {
-            if (defaultPreset != null) DestroyImmediate(defaultPreset);
-        }
-
-        void OnProjectChange()
-        {
-            // The source file may have been changed or reimported.
-            loadedImage = null;
-            MarkPreviewDirty(PreviewDelay);
-        }
-
-        void OnEditorUpdate()
-        {
-            // Catches edits made to the preset asset in the Inspector as well as in this window.
-            int dirtyCount = EditorUtility.GetDirtyCount(ActivePreset);
-            if (dirtyCount != presetDirtyCount)
-            {
-                presetDirtyCount = dirtyCount;
-                MarkPreviewDirty(PreviewDelay);
-            }
-
-            if (previewDirty && EditorApplication.timeSinceStartup >= previewDueTime)
-            {
-                previewDirty = false;
-                RebuildPreview();
-            }
-        }
-
-        void MarkPreviewDirty(double delay)
-        {
-            previewDirty = true;
-            previewDueTime = EditorApplication.timeSinceStartup + delay;
-        }
-
-        void Select(int index)
-        {
-            selectedIndex = index;
-            MarkPreviewDirty(0);
         }
 
         void OnGUI()
         {
-            if (inputStyle == null) inputStyle = new GUIStyle(EditorStyles.miniButtonLeft) { alignment = TextAnchor.MiddleLeft };
-
-            HandleDragAndDrop();
             using (new EditorGUILayout.HorizontalScope())
             {
-                using (new EditorGUILayout.VerticalScope(GUILayout.Width(SidebarWidth)))
+                using (new EditorGUILayout.VerticalScope(GUILayout.Width(PanelWidth)))
                 {
-                    DrawInputs();
+                    EditorGUILayout.Space();
                     DrawSettings();
-                    DrawOutput();
                 }
 
                 DrawPreview();
             }
         }
 
-        void DrawInputs()
-        {
-            EditorGUILayout.LabelField("Images", EditorStyles.boldLabel);
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                if (GUILayout.Button("Add Selected")) Add(Collect(Selection.GetFiltered<Object>(SelectionMode.Assets)));
-                using (new EditorGUI.DisabledScope(inputs.Count == 0))
-                {
-                    if (GUILayout.Button("Clear"))
-                    {
-                        inputs.Clear();
-                        Select(-1);
-                    }
-                }
-            }
-
-            inputScroll = EditorGUILayout.BeginScrollView(inputScroll, GUILayout.Height(140));
-            if (inputs.Count == 0)
-                EditorGUILayout.HelpBox("Drag images or folders here, or select them in the Project window and press Add Selected.", MessageType.None);
-
-            for (int i = 0; i < inputs.Count; i++)
-            {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    string label = inputs[i] != null ? inputs[i].name : "(missing)";
-                    if (GUILayout.Toggle(i == selectedIndex, label, inputStyle) && i != selectedIndex) Select(i);
-                    if (GUILayout.Button("×", EditorStyles.miniButtonRight, GUILayout.Width(22)))
-                    {
-                        inputs.RemoveAt(i);
-                        Select(selectedIndex > i ? selectedIndex - 1 : Math.Min(selectedIndex, inputs.Count - 1));
-                        GUIUtility.ExitGUI();
-                    }
-                }
-            }
-
-            EditorGUILayout.EndScrollView();
-        }
-
         void DrawSettings()
         {
+            EditorGUI.BeginChangeCheck();
+            var picked = (Texture2D)EditorGUILayout.ObjectField(
+                new GUIContent("Image", "The picture to fix. Drag it here from the Project window."), image, typeof(Texture2D), false);
+            if (EditorGUI.EndChangeCheck()) SetImage(picked);
+
+            EditorGUI.BeginChangeCheck();
+            settings.Mode = (ImageMode)Choice("Mode",
+                "Single: the picture shows one object.\nMultiple: it shows several objects, like a sprite sheet.",
+                (int)settings.Mode, "Single", "Multiple");
+
+            if (settings.Mode == ImageMode.Multiple)
+            {
+                settings.Output = (OutputType)Choice("Output",
+                    "Sheet: one texture, objects in a grid of equal cells. Good for animations.\n" +
+                    "Separate: one file for each object.\nAtlas: one texture, objects packed tightly.",
+                    (int)settings.Output, "Sheet", "Separate", "Atlas");
+            }
+
+            settings.Size = Mathf.Clamp(EditorGUILayout.DelayedIntField(
+                new GUIContent("Size", "Width and height of each sprite, in pixels."), settings.Size), 16, 4096);
+            settings.Pivot = PivotGrid(settings.Pivot);
+            if (EditorGUI.EndChangeCheck()) Arrange();
+
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Settings", EditorStyles.boldLabel);
+            if (!string.IsNullOrEmpty(message)) EditorGUILayout.HelpBox(message, MessageType.None);
+
+            using (new EditorGUI.DisabledScope(!CanSave()))
+            {
+                if (GUILayout.Button("Fix", GUILayout.Height(32))) Save();
+            }
+        }
+
+        static int Choice(string label, string tooltip, int selected, params string[] options)
+        {
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUI.BeginChangeCheck();
-                var chosen = (SpriteTidyPreset)EditorGUILayout.ObjectField("Preset", preset, typeof(SpriteTidyPreset), false);
-                if (EditorGUI.EndChangeCheck())
+                EditorGUILayout.PrefixLabel(new GUIContent(label, tooltip));
+                return GUILayout.Toolbar(selected, options);
+            }
+        }
+
+        static Pivot PivotGrid(Pivot current)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.PrefixLabel(new GUIContent("Pivot",
+                    "Where each object is pinned inside its sprite. The sprite pivot is set to the same point.\n" +
+                    "Bottom: objects stand on the bottom edge, centered on their base. Good for animations."));
+
+                using (new EditorGUILayout.VerticalScope(GUILayout.Width(84)))
                 {
-                    preset = chosen;
-                    MarkPreviewDirty(0);
+                    for (int row = 0; row < 3; row++)
+                    {
+                        using (new EditorGUILayout.HorizontalScope())
+                        {
+                            for (int column = 0; column < 3; column++)
+                            {
+                                var pivot = (Pivot)(row * 3 + column);
+                                var content = new GUIContent("", ObjectNames.NicifyVariableName(pivot.ToString()));
+                                if (GUILayout.Toggle(pivot == current, content, "Button", GUILayout.Width(26), GUILayout.Height(20)))
+                                    current = pivot;
+                            }
+                        }
+                    }
                 }
 
-                if (preset == null && GUILayout.Button(new GUIContent("Save As…", "Save these settings as a preset asset."), GUILayout.Width(72)))
-                    SaveDefaultAsPreset();
+                EditorGUILayout.LabelField(ObjectNames.NicifyVariableName(current.ToString()), EditorStyles.miniLabel);
             }
 
-            if (presetObject == null || presetObject.targetObject != ActivePreset) presetObject = new SerializedObject(ActivePreset);
-
-            settingsScroll = EditorGUILayout.BeginScrollView(settingsScroll);
-            float labelWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 150;
-            presetObject.Update();
-            EditorGUI.BeginChangeCheck();
-            var property = presetObject.GetIterator();
-            property.NextVisible(true); // m_Script
-            while (property.NextVisible(false)) EditorGUILayout.PropertyField(property, true);
-            if (EditorGUI.EndChangeCheck())
-            {
-                presetObject.ApplyModifiedProperties();
-                MarkPreviewDirty(PreviewDelay);
-            }
-
-            EditorGUIUtility.labelWidth = labelWidth;
-            EditorGUILayout.EndScrollView();
-        }
-
-        void SaveDefaultAsPreset()
-        {
-            string path = EditorUtility.SaveFilePanelInProject("Save Sprite Tidy Preset", "SpriteTidyPreset", "asset", "Choose where to save the preset.");
-            if (string.IsNullOrEmpty(path)) return;
-
-            var asset = Instantiate(ActivePreset);
-            asset.hideFlags = HideFlags.None;
-            AssetDatabase.CreateAsset(asset, path);
-            AssetDatabase.SaveAssets();
-            preset = asset;
-            MarkPreviewDirty(0);
-            GUIUtility.ExitGUI();
-        }
-
-        void DrawOutput()
-        {
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Output", EditorStyles.boldLabel);
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                outputFolder = EditorGUILayout.TextField(
-                    new GUIContent("Folder", "Project folder for the results. Leave empty to put them in a \"Tidy\" folder next to each source image."),
-                    outputFolder);
-                if (GUILayout.Button("…", GUILayout.Width(24))) BrowseOutputFolder();
-            }
-
-            if (string.IsNullOrWhiteSpace(outputFolder))
-                EditorGUILayout.LabelField($"Results go to a \"{SpriteTidyProcessor.DefaultSubfolder}\" folder next to each image.", EditorStyles.miniLabel);
-
-            int count = inputs.Count(t => t != null);
-            using (new EditorGUI.DisabledScope(count == 0))
-            {
-                if (GUILayout.Button(count == 1 ? "Process 1 Image" : $"Process {count} Images", GUILayout.Height(28)))
-                    ProcessAll();
-            }
-
-            EditorGUILayout.Space();
-        }
-
-        void BrowseOutputFolder()
-        {
-            string chosen = EditorUtility.OpenFolderPanel("Sprite Tidy Output Folder", "Assets", "");
-            if (string.IsNullOrEmpty(chosen)) return;
-
-            string assets = Application.dataPath.Replace('\\', '/');
-            chosen = chosen.Replace('\\', '/');
-            if (chosen == assets || chosen.StartsWith(assets + "/", StringComparison.OrdinalIgnoreCase))
-                outputFolder = "Assets" + chosen.Substring(assets.Length);
-            else
-                EditorUtility.DisplayDialog("Sprite Tidy", "Choose a folder inside this project's Assets folder.", "OK");
-        }
-
-        void ProcessAll()
-        {
-            var written = SpriteTidyProcessor.Process(inputs.Where(t => t != null).ToList(), ActivePreset, outputFolder);
-            if (written.Count > 0) EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<Object>(written[0]));
-            ShowNotification(new GUIContent(written.Count == 1 ? "1 sprite written" : $"{written.Count} sprites written"));
-            GUIUtility.ExitGUI();
+            return current;
         }
 
         void DrawPreview()
         {
             using (new EditorGUILayout.VerticalScope())
             {
-                if (SelectedTexture == null)
+                if (image == null)
                 {
                     GUILayout.FlexibleSpace();
-                    EditorGUILayout.LabelField("Select an image to preview it.", EditorStyles.centeredGreyMiniLabel);
+                    EditorGUILayout.LabelField("Put an image in the Image field to start.", EditorStyles.centeredGreyMiniLabel);
                     GUILayout.FlexibleSpace();
                     return;
                 }
 
-                EditorGUILayout.LabelField(previewInfo ?? "Processing…", EditorStyles.wordWrappedMiniLabel);
-
-                float topHeight = Mathf.Max(140f, (position.height - 80f) * 0.45f);
-                var top = GUILayoutUtility.GetRect(0, topHeight, GUILayout.ExpandWidth(true));
-                float half = (top.width - 8f) / 2f;
-                var original = new Rect(top.x, top.y, half, top.height);
-                var cleaned = new Rect(top.x + half + 8f, top.y, half, top.height);
-                DrawLabeledImage(original, "Original", SelectedTexture);
-                DrawLabeledImage(cleaned, "Cleaned", cleanedPreview);
-
-                EditorGUILayout.Space();
-                EditorGUILayout.LabelField($"Sprites ({spritePreviews.Count})", EditorStyles.miniBoldLabel);
-                spriteScroll = EditorGUILayout.BeginScrollView(spriteScroll);
-                DrawSpriteGrid();
-                EditorGUILayout.EndScrollView();
+                float height = (position.height - 12f) / 2f;
+                DrawImage(GUILayoutUtility.GetRect(0, height, GUILayout.ExpandWidth(true)), "Original", image, null);
+                var area = GUILayoutUtility.GetRect(0, height, GUILayout.ExpandWidth(true));
+                if (previews.Count == 1) DrawImage(area, "Result", previews[0], result[0].Sprites);
+                else if (previews.Count > 1) DrawGrid(area);
             }
         }
 
-        void DrawSpriteGrid()
+        /// <summary>Several separate files: one small preview each.</summary>
+        void DrawGrid(Rect area)
         {
-            float width = position.width - SidebarWidth - 24f;
-            int columns = Mathf.Max(1, Mathf.FloorToInt(width / (ThumbnailSize + 8f)));
-            for (int start = 0; start < spritePreviews.Count; start += columns)
+            GUI.Label(new Rect(area.x, area.y, area.width, 16f), "Result", EditorStyles.miniLabel);
+            area.yMin += 18f;
+            int columns = Mathf.CeilToInt(Mathf.Sqrt(previews.Count * area.width / Mathf.Max(1f, area.height)));
+            int rows = Mathf.CeilToInt((float)previews.Count / columns);
+            float cell = Mathf.Min(area.width / columns, area.height / rows);
+            for (int i = 0; i < previews.Count; i++)
             {
-                var row = GUILayoutUtility.GetRect(width, ThumbnailSize + 18f);
-                for (int c = 0; c < columns && start + c < spritePreviews.Count; c++)
-                {
-                    var cell = new Rect(row.x + c * (ThumbnailSize + 8f), row.y, ThumbnailSize, ThumbnailSize + 18f);
-                    DrawLabeledImage(cell, (start + c + 1).ToString(), spritePreviews[start + c]);
-                }
+                var rect = new Rect(area.x + i % columns * cell, area.y + i / columns * cell, cell - 4f, cell - 4f);
+                DrawFitted(rect, previews[i], result[i].Sprites);
             }
         }
 
-        void DrawLabeledImage(Rect rect, string label, Texture texture)
+        void DrawImage(Rect area, string label, Texture texture, IReadOnlyList<SpriteArea> sprites)
         {
-            GUI.Label(new Rect(rect.x, rect.y, rect.width, 16f), label, EditorStyles.miniLabel);
-            if (texture == null) return;
+            GUI.Label(new Rect(area.x, area.y, area.width, 16f), label, EditorStyles.miniLabel);
+            area.yMin += 18f;
+            DrawFitted(area, texture, sprites);
+        }
 
-            var area = new Rect(rect.x, rect.y + 18f, rect.width, rect.height - 18f);
+        /// <summary>Draws a texture over a checkerboard, with the sprite outlines and pivots marked.</summary>
+        void DrawFitted(Rect area, Texture texture, IReadOnlyList<SpriteArea> sprites)
+        {
             float scale = Mathf.Min(area.width / texture.width, area.height / texture.height);
-            var fitted = new Rect(0, 0, texture.width * scale, texture.height * scale) { center = area.center };
-            GUI.DrawTextureWithTexCoords(fitted, Checker, new Rect(0, 0, fitted.width / 16f, fitted.height / 16f));
-            GUI.DrawTexture(fitted, texture, ScaleMode.StretchToFill, true);
+            var rect = new Rect(0, 0, texture.width * scale, texture.height * scale) { center = area.center };
+            GUI.DrawTextureWithTexCoords(rect, Checker(), new Rect(0, 0, rect.width / 16f, rect.height / 16f));
+            GUI.DrawTexture(rect, texture, ScaleMode.StretchToFill, true);
+            if (sprites == null) return;
+
+            foreach (var sprite in sprites)
+            {
+                // Texture y counts from the bottom; GUI y counts from the top.
+                var r = sprite.Rect;
+                var outline = new Rect(rect.x + r.X * scale, rect.yMax - r.YMax * scale, r.Width * scale, r.Height * scale);
+                if (sprites.Count > 1) DrawOutline(outline, CellColor);
+                var pivot = new Vector2(outline.x + sprite.PivotX * outline.width, outline.yMax - sprite.PivotY * outline.height);
+                EditorGUI.DrawRect(new Rect(pivot.x - 2f, pivot.y - 2f, 5f, 5f), PivotColor);
+            }
         }
 
-        void RebuildPreview()
+        static void DrawOutline(Rect r, Color color)
         {
-            DestroyPreviews();
-            var texture = SelectedTexture;
-            if (texture == null)
+            EditorGUI.DrawRect(new Rect(r.x, r.y, r.width, 1f), color);
+            EditorGUI.DrawRect(new Rect(r.x, r.yMax - 1f, r.width, 1f), color);
+            EditorGUI.DrawRect(new Rect(r.x, r.y, 1f, r.height), color);
+            EditorGUI.DrawRect(new Rect(r.xMax - 1f, r.y, 1f, r.height), color);
+        }
+
+        /// <summary>Runs the slow clean-up step when the image changes, then lays out the result.</summary>
+        void Refresh()
+        {
+            if (image == null)
             {
-                previewInfo = null;
-                Repaint();
+                clean = null;
+                Arrange();
                 return;
             }
 
-            try
+            if (clean == null || cleanFor != image)
             {
-                if (loadedImage == null || loadedTexture != texture)
+                try
                 {
-                    loadedImage = SpriteTidyIO.Load(AssetDatabase.GetAssetPath(texture));
-                    loadedTexture = texture;
+                    clean = SpriteFixer.Clean(SpriteTidyIO.Load(AssetDatabase.GetAssetPath(image)));
+                    cleanFor = image;
                 }
-
-                var stopwatch = Stopwatch.StartNew();
-                var result = TidyPipeline.Process(loadedImage, ActivePreset.ToSettings());
-                stopwatch.Stop();
-
-                cleanedPreview = SpriteTidyIO.ToTexture(result.Cleaned);
-                foreach (var sprite in result.Sprites) spritePreviews.Add(SpriteTidyIO.ToTexture(sprite.Image));
-
-                string background = result.Background != null ? result.Background.ToString() : "not removed";
-                previewInfo = $"{loadedImage.Width}×{loadedImage.Height}  ·  background: {background}  ·  " +
-                              $"{result.Sprites.Count} sprite(s)  ·  {stopwatch.ElapsedMilliseconds} ms";
-            }
-            catch (Exception e)
-            {
-                previewInfo = $"Preview failed: {e.Message}";
-                Debug.LogException(e);
+                catch (Exception e)
+                {
+                    clean = null;
+                    ClearPreviews();
+                    result = null;
+                    message = "This image could not be read: " + e.Message;
+                    Repaint();
+                    return;
+                }
             }
 
+            Arrange();
+        }
+
+        /// <summary>The fast step: scales and places the objects with the current settings.</summary>
+        void Arrange()
+        {
+            ClearPreviews();
+            result = clean != null ? SpriteFixer.Arrange(clean, settings) : null;
+            if (result != null)
+                foreach (var output in result) previews.Add(SpriteTidyIO.ToTexture(output.Image));
+            message = Describe();
             Repaint();
         }
 
-        void DestroyPreviews()
+        string Describe()
         {
-            if (cleanedPreview != null) DestroyImmediate(cleanedPreview);
-            cleanedPreview = null;
-            foreach (var texture in spritePreviews)
+            if (clean == null) return null;
+
+            int count = clean.Parts.Count;
+            if (count == 0) return "No objects found in this image.";
+
+            string background = clean.Background == BackgroundType.Solid ? "a plain"
+                : clean.Background == BackgroundType.Checkerboard ? "a checkerboard"
+                : "a transparent";
+            string found = count == 1 ? $"Found 1 object on {background} background." : $"Found {count} objects on {background} background.";
+
+            string sourcePath = AssetDatabase.GetAssetPath(image);
+            if (!sourcePath.StartsWith("Assets/", StringComparison.Ordinal))
+                return found + "\nThe image must be in the Assets folder to save next to it.";
+
+            var files = SpriteTidySaver.OutputPaths(sourcePath, result.Count).Select(Path.GetFileName).ToList();
+            int size = settings.Size;
+            string saves;
+            if (settings.Mode == ImageMode.Single)
+                saves = $"Saves {files[0]}: one sprite of {size} × {size}.";
+            else if (settings.Output == OutputType.Separate)
+                saves = $"Saves {files.Count} files of {size} × {size}: {files[0]} to {files[files.Count - 1]}.";
+            else if (settings.Output == OutputType.Sheet)
+                saves = $"Saves {files[0]}: {count} sprites of {size} × {size} in a {result[0].Image.Width / size} × {result[0].Image.Height / size} grid.";
+            else
+                saves = $"Saves {files[0]}: {count} sprites packed into {result[0].Image.Width} × {result[0].Image.Height}.";
+            return found + "\n" + saves;
+        }
+
+        bool CanSave() => result != null && result.Count > 0 && AssetDatabase.GetAssetPath(image).StartsWith("Assets/", StringComparison.Ordinal);
+
+        void Save()
+        {
+            var written = SpriteTidySaver.Save(AssetDatabase.GetAssetPath(image), result);
+            EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<Object>(written[0]));
+            ShowNotification(new GUIContent(written.Count == 1 ? "Saved " + Path.GetFileName(written[0]) : $"Saved {written.Count} files"));
+            GUIUtility.ExitGUI();
+        }
+
+        void ClearPreviews()
+        {
+            foreach (var texture in previews)
                 if (texture != null) DestroyImmediate(texture);
-            spritePreviews.Clear();
+            previews.Clear();
         }
 
-        void HandleDragAndDrop()
+        Texture2D Checker()
         {
-            var evt = Event.current;
-            if (evt.type != EventType.DragUpdated && evt.type != EventType.DragPerform) return;
-
-            var textures = Collect(DragAndDrop.objectReferences).ToList();
-            if (textures.Count == 0) return;
-
-            DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
-            if (evt.type == EventType.DragPerform)
+            if (checker != null) return checker;
+            checker = new Texture2D(2, 2, TextureFormat.RGBA32, false)
             {
-                DragAndDrop.AcceptDrag();
-                Add(textures);
-            }
-
-            evt.Use();
-        }
-
-        /// <summary>Textures among the given assets, including those inside folders but not Sprite Tidy's own output folders.</summary>
-        static IEnumerable<Texture2D> Collect(IEnumerable<Object> objects)
-        {
-            foreach (var obj in objects)
-            {
-                if (obj is Texture2D texture)
-                {
-                    yield return texture;
-                    continue;
-                }
-
-                if (obj is Sprite sprite)
-                {
-                    if (sprite.texture != null) yield return sprite.texture;
-                    continue;
-                }
-
-                string folder = AssetDatabase.GetAssetPath(obj);
-                if (!AssetDatabase.IsValidFolder(folder)) continue;
-
-                string outputMarker = "/" + SpriteTidyProcessor.DefaultSubfolder + "/";
-                foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { folder }))
-                {
-                    string path = AssetDatabase.GUIDToAssetPath(guid);
-                    if (path.Contains(outputMarker)) continue;
-                    var found = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-                    if (found != null) yield return found;
-                }
-            }
+                hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Repeat,
+            };
+            var light = new Color32(204, 204, 204, 255);
+            var dark = new Color32(160, 160, 160, 255);
+            checker.SetPixels32(new[] { light, dark, dark, light });
+            checker.Apply(false);
+            return checker;
         }
     }
 }

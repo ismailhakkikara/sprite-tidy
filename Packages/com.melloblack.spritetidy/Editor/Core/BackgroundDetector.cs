@@ -4,39 +4,19 @@ using System.Linq;
 
 namespace MelloBlack.SpriteTidy.Core
 {
-    public enum BackgroundKind
+    public enum BackgroundType
     {
         /// <summary>The image already has a transparent background.</summary>
         Transparent,
 
-        /// <summary>A single flat color.</summary>
+        /// <summary>One plain color.</summary>
         Solid,
 
-        /// <summary>Two alternating colors: the "fake transparency" pattern image generators often paint.</summary>
+        /// <summary>Two colors in squares: the "fake transparency" pattern image generators often paint.</summary>
         Checkerboard,
     }
 
-    public sealed class BackgroundModel
-    {
-        public BackgroundModel(BackgroundKind kind, params Rgba32[] colors)
-        {
-            Kind = kind;
-            Colors = colors ?? Array.Empty<Rgba32>();
-        }
-
-        public BackgroundKind Kind { get; }
-
-        public IReadOnlyList<Rgba32> Colors { get; }
-
-        public override string ToString()
-        {
-            return Kind == BackgroundKind.Transparent
-                ? "transparent"
-                : $"{Kind.ToString().ToLowerInvariant()} {string.Join(" / ", Colors)}";
-        }
-    }
-
-    /// <summary>Works out what the background of an image is by looking at a ring of pixels near its border.</summary>
+    /// <summary>Finds out what the background of an image is by looking at a ring of pixels near its border.</summary>
     public static class BackgroundDetector
     {
         internal const int TransparentAlpha = 16;
@@ -59,24 +39,36 @@ namespace MelloBlack.SpriteTidy.Core
         // Distance from the image edge of the sampled ring, skipping the outermost pixels where generators leave artifacts.
         const int RingInset = 2;
 
-        public static BackgroundModel Detect(RgbaImage image, int tolerance)
+        /// <param name="colors">The background colors: none, one, or the two checkerboard colors.</param>
+        public static BackgroundType Detect(RgbaImage image, out Rgba32[] colors)
         {
+            int tolerance = BackgroundRemover.Tolerance;
             var ring = SampleRing(image);
             var opaque = new List<Rgba32>(ring.Count);
             foreach (var p in ring)
                 if (p.A >= TransparentAlpha) opaque.Add(p);
 
-            if (opaque.Count * 2 <= ring.Count) return new BackgroundModel(BackgroundKind.Transparent);
+            colors = Array.Empty<Rgba32>();
+            if (opaque.Count * 2 <= ring.Count) return BackgroundType.Transparent;
 
             var first = DominantColor(opaque, c => true).Value;
             int separation2 = MinCheckerSeparation * MinCheckerSeparation;
             var second = DominantColor(opaque, c => Rgba32.DistanceSquared(c, first) > separation2);
 
             if (second.HasValue && LooksLikeCheckerboard(ring, first, second.Value, tolerance))
-                return new BackgroundModel(BackgroundKind.Checkerboard, first, second.Value);
+            {
+                colors = new[] { first, second.Value };
+                return BackgroundType.Checkerboard;
+            }
+
             if (TryFindSubtleCheckerboard(ring, first, tolerance, out var darker, out var lighter))
-                return new BackgroundModel(BackgroundKind.Checkerboard, darker, lighter);
-            return new BackgroundModel(BackgroundKind.Solid, first);
+            {
+                colors = new[] { darker, lighter };
+                return BackgroundType.Checkerboard;
+            }
+
+            colors = new[] { first };
+            return BackgroundType.Solid;
         }
 
         /// <summary>The pixels of a rectangle just inside the image border, in order around the image.</summary>

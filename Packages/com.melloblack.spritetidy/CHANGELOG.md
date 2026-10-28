@@ -8,13 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Background removal for flat colors and fake checkerboards (including dark, low-contrast ones), with removal of
-  enclosed holes and un-blending of anti-aliased edges.
-- Alpha cleanup: nearly opaque pixels become fully opaque and faint haze is cleared.
-- Object splitting: every separate object in an image becomes its own sprite, in reading order, with detached
-  fragments and faint glows attached to the nearest object.
-- Canvas fitting with padding, alignment anchors, optional shared scale per image and bicubic or Lanczos resampling
-  with premultiplied alpha.
-- Sprite Tidy window with before/after preview, presets and batch processing; results are imported as sprites with
-  the pivot at the alignment anchor.
-- `TidyPipeline` API for running the clean-up from code.
+- Sprite Tidy window with four settings: Mode (Single or Multiple), Output (Sheet, Separate or Atlas), Size and Pivot,
+  and a preview of the original and the result.
+- Background removal for plain colors and fake checkerboards (also dark ones whose two colors are nearly the same),
+  with removal of holes and un-blending of soft edges.
+- Alpha cleanup: nearly opaque pixels become fully opaque and faint haze is removed.
+- Object finding: each separate object in reading order, with loose bits and faint glows given to the nearest object.
+- One shared scale for all objects and pinning at the pivot, so sprite sheet frames keep the same size and position.
+- Results are saved next to the original with a `_fixed` suffix and imported as sprites; saving again keeps the sprite IDs.
+- `SpriteFixer` and `SpriteTidySaver` for doing the same from code.

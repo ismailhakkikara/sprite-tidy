@@ -9,15 +9,15 @@
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
 
-# Left behind if a test run is interrupted
+# Asset meta data should only be ignored when the corresponding asset is also ignored
+!/[Aa]ssets/**/*.meta
+
+# Left behind if a test run is interrupted (after the rule above, so their .meta files stay ignored too)
 /[Aa]ssets/SpriteTidyTests_Temp*
 
 # Your own images for trying the tool in this project; never committed
 /[Aa]ssets/LocalSamples/
 /[Aa]ssets/LocalSamples.meta
-
-# Asset meta data should only be ignored when the corresponding asset is also ignored
-!/[Aa]ssets/**/*.meta
 
 # IDE and solution files
 .vs/
