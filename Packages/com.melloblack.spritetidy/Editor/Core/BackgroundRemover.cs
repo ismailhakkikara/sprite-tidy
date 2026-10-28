@@ -24,6 +24,10 @@ namespace MelloBlack.SpriteTidy.Core
         // Each of the two checkerboard colors must cover at least this share of a hole.
         const double MinHoleColorShare = 0.2;
 
+        // A hole must be at least this wide (share of the image's longer side). A real hole shows at least one
+        // checkerboard square; a dark outline next to a dark checkerboard is only a few pixels wide.
+        const double MinHoleWidth = 0.01;
+
         // Lowest tolerance used when looking for checkerboard holes.
         const int MinHoleTolerance = 6;
 
@@ -55,8 +59,9 @@ namespace MelloBlack.SpriteTidy.Core
                 double holeTolerance = Math.Min(Tolerance, Math.Max(Math.Max(MinHoleTolerance, Tolerance / 3.0), colorDistance / 2));
                 var holeMatches = MatchColors(pixels, colors, holeTolerance);
                 int minArea = Math.Max(16, (int)(n * MinHoleShare));
+                int minHalfWidth = Math.Max(4, (int)Math.Round(Math.Max(w, h) * MinHoleWidth / 2));
                 int growSteps = Math.Max(2, (int)Math.Round(Math.Max(w, h) * HoleGrowth));
-                FillHoles(pixels, holeMatches, matches, background, queue, w, h, colors, minArea, growSteps);
+                FillHoles(pixels, holeMatches, matches, background, queue, w, h, colors, minArea, minHalfWidth, growSteps);
             }
 
             RefineEdges(pixels, background, queue, w, h, EdgeWidth);
@@ -72,7 +77,7 @@ namespace MelloBlack.SpriteTidy.Core
             double tolerance2 = tolerance * tolerance;
             var matches = new bool[pixels.Length];
             for (int i = 0; i < pixels.Length; i++)
-                matches[i] = pixels[i].A < BackgroundDetector.TransparentAlpha || NearestDistanceSquared(pixels[i], colors) <= tolerance2;
+                matches[i] = pixels[i].A < BackgroundDetector.TransparentAlpha || DistanceSquaredToBackground(pixels[i], colors) <= tolerance2;
             return matches;
         }
 
@@ -114,11 +119,15 @@ namespace MelloBlack.SpriteTidy.Core
         /// <paramref name="growSteps"/> pixels into neighboring <paramref name="growMatches"/> pixels.
         /// </summary>
         static void FillHoles(Rgba32[] pixels, bool[] seedMatches, bool[] growMatches, bool[] background, int[] queue, int w, int h,
-            Rgba32[] colors, int minArea, int growSteps)
+            Rgba32[] colors, int minArea, int minHalfWidth, int growSteps)
         {
             int n = w * h;
             var visited = new bool[n];
             var steps = new int[n];
+            var regionOf = new int[n];
+            var work = new int[n];
+            for (int i = 0; i < n; i++) regionOf[i] = -1;
+
             for (int start = 0; start < n; start++)
             {
                 if (!seedMatches[start] || background[start] || visited[start]) continue;
@@ -138,6 +147,7 @@ namespace MelloBlack.SpriteTidy.Core
 
                 if (tail < minArea) continue;
                 if (!CoversBothColors(pixels, queue, tail, colors)) continue;
+                if (HalfWidth(queue, tail, start, regionOf, steps, work, w, h) < minHalfWidth) continue;
 
                 for (int k = 0; k < tail; k++)
                 {
@@ -170,6 +180,55 @@ namespace MelloBlack.SpriteTidy.Core
                     visited[to] = true;
                     steps[to] = steps[from] + 1;
                     queue[tail++] = to;
+                }
+            }
+        }
+
+        /// <summary>
+        /// How far the deepest pixel of a region is from the region's edge, counting diagonal steps as one so that
+        /// slanted shapes are not measured wider than they are: a ring 6 pixels wide gives 3.
+        /// Uses <paramref name="depth"/> and <paramref name="work"/> as scratch space.
+        /// </summary>
+        static int HalfWidth(int[] region, int count, int id, int[] regionOf, int[] depth, int[] work, int w, int h)
+        {
+            for (int k = 0; k < count; k++) regionOf[region[k]] = id;
+
+            // Start from the edge pixels of the region and walk inward.
+            int tail = 0;
+            for (int k = 0; k < count; k++)
+            {
+                int i = region[k];
+                bool edge = false;
+                ForEachNeighbor(i, j => edge |= j < 0 || regionOf[j] != id);
+                depth[i] = edge ? 1 : 0;
+                if (edge) work[tail++] = i;
+            }
+
+            int deepest = tail > 0 ? 1 : 0;
+            for (int head = 0; head < tail; head++)
+            {
+                int i = work[head];
+                ForEachNeighbor(i, j =>
+                {
+                    if (j < 0 || regionOf[j] != id || depth[j] != 0) return;
+                    depth[j] = depth[i] + 1;
+                    if (depth[j] > deepest) deepest = depth[j];
+                    work[tail++] = j;
+                });
+            }
+
+            return deepest;
+
+            // Calls the action with each of the 8 neighbors of a pixel, or -1 for a neighbor outside the image.
+            void ForEachNeighbor(int i, Action<int> action)
+            {
+                int x = i % w, y = i / w;
+                for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = x + dx, ny = y + dy;
+                    action(nx < 0 || nx >= w || ny < 0 || ny >= h ? -1 : ny * w + nx);
                 }
             }
         }
@@ -289,16 +348,25 @@ namespace MelloBlack.SpriteTidy.Core
             return (byte)Math.Round(Math.Max(0.0, Math.Min(255.0, value)));
         }
 
-        static int NearestDistanceSquared(Rgba32 p, Rgba32[] colors)
+        /// <summary>
+        /// How far a pixel's color is from the background. On a checkerboard, the pixels between two squares are a
+        /// mix of both colors, so the distance is to the nearest mix of the two colors, not just to each color.
+        /// </summary>
+        static double DistanceSquaredToBackground(Rgba32 p, Rgba32[] colors)
         {
-            int best = int.MaxValue;
-            for (int i = 0; i < colors.Length; i++)
-            {
-                int d = Rgba32.DistanceSquared(p, colors[i]);
-                if (d < best) best = d;
-            }
+            var a = colors[0];
+            if (colors.Length == 1) return Rgba32.DistanceSquared(p, a);
 
-            return best;
+            var b = colors[1];
+            double abR = b.R - a.R, abG = b.G - a.G, abB = b.B - a.B;
+            double length2 = abR * abR + abG * abG + abB * abB;
+            double t = length2 == 0 ? 0 : ((p.R - a.R) * abR + (p.G - a.G) * abG + (p.B - a.B) * abB) / length2;
+            t = Math.Max(0, Math.Min(1, t));
+
+            double dr = p.R - (a.R + t * abR);
+            double dg = p.G - (a.G + t * abG);
+            double db = p.B - (a.B + t * abB);
+            return dr * dr + dg * dg + db * db;
         }
     }
 }

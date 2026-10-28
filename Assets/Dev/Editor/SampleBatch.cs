@@ -10,8 +10,9 @@ using Debug = UnityEngine.Debug;
 
 /// <summary>
 /// Development helper, not part of the package: fixes every image in a folder outside the project as a Multiple
-/// image and writes, for each one, the sheet over a checkerboard and an "onion skin" of all cells on top of each other.
-/// In the onion skin, frames that drift show up as doubled edges.
+/// image and writes, for each one, the sheet over a checkerboard, an "onion skin" of all cells on top of each other,
+/// and an alpha map. In the onion skin, frames that drift show up as doubled edges. In the alpha map every visible
+/// pixel is white, so background left behind shows up even where it would hide on a gray checkerboard.
 ///
 /// Unity -batchmode -quit -projectPath . -executeMethod SampleBatch.Run -sampleIn &lt;folder&gt; -sampleOut &lt;folder&gt; [-pivot Bottom]
 /// </summary>
@@ -36,6 +37,7 @@ public static class SampleBatch
 
             SpriteTidyIO.SavePng(OverChecker(sheet.Image), Path.Combine(output, name + "__sheet.png"));
             SpriteTidyIO.SavePng(OverChecker(Onion(sheet, settings.Size)), Path.Combine(output, name + "__onion.png"));
+            SpriteTidyIO.SavePng(AlphaMap(sheet.Image), Path.Combine(output, name + "__alpha.png"));
 
             string line = $"{name}: background {clean.Background}, {clean.Parts.Count} objects, {stopwatch.ElapsedMilliseconds} ms";
             summary.AppendLine(line);
@@ -81,6 +83,19 @@ public static class SampleBatch
         }
 
         return onion;
+    }
+
+    /// <summary>Alpha as gray: white where the image is opaque, black where it is transparent.</summary>
+    static RgbaImage AlphaMap(RgbaImage image)
+    {
+        var map = new RgbaImage(image.Width, image.Height);
+        for (int i = 0; i < image.Pixels.Length; i++)
+        {
+            byte a = image.Pixels[i].A;
+            map.Pixels[i] = new Rgba32(a, a, a);
+        }
+
+        return map;
     }
 
     /// <summary>The image over a gray checkerboard, with a magenta line on each cell border.</summary>

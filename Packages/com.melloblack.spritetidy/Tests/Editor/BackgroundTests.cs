@@ -93,6 +93,25 @@ namespace MelloBlack.SpriteTidy.Tests
         }
 
         [Test]
+        public void RemovesTheSoftLinesBetweenCheckerboardSquares()
+        {
+            // Measured from a generated image: the pixels between two squares mix both colors, and the mix is
+            // farther than the tolerance from either color.
+            var light = new Rgba32(203, 202, 202);
+            var dark = new Rgba32(147, 147, 147);
+            var mix = new Rgba32(175, 175, 175);
+            var image = Checkerboard(160, 160, 16, light, dark);
+            for (int y = 0; y < 160; y++)
+            for (int x = 0; x < 160; x++)
+                if (x % 16 == 0 || y % 16 == 0) image[x, y] = mix;
+            FillOutlinedRect(image, 50, 50, 60, 60, 3, Red, Outline);
+
+            BackgroundRemover.Remove(image);
+
+            Assert.AreEqual(60 * 60, Count(image, p => p.A > 0), "only the object is left");
+        }
+
+        [Test]
         public void KeepsClosedAreasOnPlainBackgrounds()
         {
             // A dark panel in a gold frame on black: the panel is close to the background color but part of the art.
@@ -111,13 +130,21 @@ namespace MelloBlack.SpriteTidy.Tests
             var darkB = new Rgba32(20, 22, 24);
             var image = Checkerboard(160, 160, 17, darkA, darkB);
             FillDisc(image, 80, 80, 60, new Rgba32(240, 240, 240)); // sticker-style white stroke
-            FillDisc(image, 80, 80, 56, new Rgba32(17, 19, 21));    // dark outline, nearly the background color
+            // A dark outline, nearly the background color and shaded from darker to lighter like real outlines,
+            // so it matches both checkerboard colors.
+            ForEachInDisc(image, 80, 80, 56, (x, y) =>
+            {
+                double r = Math.Sqrt((x + 0.5 - 80) * (x + 0.5 - 80) + (y + 0.5 - 80) * (y + 0.5 - 80));
+                byte v = (byte)(12 + Math.Max(0, r - 50) * 2);
+                image[x, y] = new Rgba32(v, (byte)(v + 2), (byte)(v + 4));
+            });
             FillDisc(image, 80, 80, 50, new Rgba32(180, 180, 190));
             ForEachInDisc(image, 80, 80, 20, (x, y) => image[x, y] = CheckerColor(x, y, 17, darkA, darkB));
 
             BackgroundRemover.Remove(image);
 
-            Assert.AreEqual(255, image[80 + 53, 80].A, "the outline stays");
+            Assert.AreEqual(255, image[80 + 51, 80].A, "the outline stays");
+            Assert.AreEqual(255, image[80 + 55, 80].A, "the outline stays");
             Assert.AreEqual(0, image[80, 80].A, "the hole is cleared");
         }
 
