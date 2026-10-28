@@ -12,7 +12,7 @@ Images from ChatGPT and other image generators rarely come out consistent:
 
 Sprite Tidy fixes these inside the Unity Editor. Your original file is never changed.
 
-> **Status:** v0.1 in development.
+> **Status:** first release, v0.1.0. Images that Sprite Tidy handles badly are very welcome in the issues.
 
 ## Usage
 

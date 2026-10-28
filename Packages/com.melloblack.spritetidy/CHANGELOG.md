@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-28
+
+First release.
+
 ### Added
 
 - Sprite Tidy window with Mode (Single or Multiple), Output (Sheet or Separate), Line up (Bottom, Center or Top,
@@ -17,5 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Object finding: each separate object in reading order, with loose bits and faint glows given to the nearest object.
 - One shared scale for all objects. In a Sheet, frames are lined up and placed together at the pivot, so they keep
   the same size and position whatever pivot is chosen.
-- Results are saved next to the original with a `_fixed` suffix and imported as sprites; saving again keeps the sprite IDs.
+- Results are saved next to the original with a `_fixed` suffix and imported as sprites with High Quality compression,
+  which keeps the smooth shading of generated art; saving again keeps the sprite IDs.
 - `SpriteFixer` and `SpriteTidySaver` for doing the same from code.
+
+[Unreleased]: https://github.com/melloBlack/sprite-tidy/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/melloBlack/sprite-tidy/releases/tag/v0.1.0
